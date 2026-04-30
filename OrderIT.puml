@@ -1,0 +1,85 @@
+@startuml
+
+legend top right
+|= name | OrderIT |
+endlegend
+
+namespace OrderIT {
+    class Proveedor #00FFB2 {
+        +Id: string
+        +Nombre: string
+        +Email: string?
+        +Telefono: string?
+        --
+    }
+    
+    class Proyecto #00FFB2 {
+        +Id: string
+        +Nombre: string
+        +Descripcion: string?
+        +FechaInicio: date
+        +FechaFin: date?
+        --
+    }
+    
+    class PerfilTecnico #73E5FF {
+        +Id: string
+        +Nombre: string
+        +Descripcion: string?
+        --
+    }
+    
+    class Pedido #FFADC6 {
+        +Id: string
+        +FechaSolicitud: date
+        +FechaAprobacion: date?
+        +Estado: EstadoPedido
+        +ImporteTotal: decimal?
+        --
+    }
+    
+    class LineaPedido #FFFD7A {
+        +Id: string
+        +HorasOfertadas: int
+        +HorasConsumidas: int
+        +PrecioHora: decimal
+        --
+    }
+    
+    class ConsumoMensual #FFADC6 {
+        +Id: string
+        +Mes: int
+        +Anio: int
+        +HorasConsumidas: int
+        +FechaRegistro: date
+        --
+    }
+    
+    class Recurso #00FFB2 {
+        +Id: string
+        +Nombre: string
+        +Apellidos: string?
+        +Email: string?
+        --
+    }
+
+    enum EstadoPedido {
+        Borrador = 0
+        Solicitado = 1
+        Aprobado = 2
+        EnEjecucion = 3
+        Consumido = 4
+        Cancelado = 5
+    }
+
+}
+
+Proyecto "1" o-- "0..*" Pedido: Proyecto > Pedidos
+Proveedor "1" o-- "0..*" Pedido: Proveedor > Pedidos
+Pedido "1" *-- "1..*" LineaPedido: Pedido > Lineas
+LineaPedido "0..*" -- "1" PerfilTecnico: LineaPedido > PerfilTecnico
+LineaPedido "1" *-- "0..*" ConsumoMensual: LineaPedido > Consumos
+Proveedor "1" o-- "0..*" Recurso: Proveedor > Recursos
+ConsumoMensual "0..*" -- "1" Recurso: ConsumoMensual > Recurso
+
+@enduml
