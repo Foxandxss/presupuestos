@@ -51,12 +51,18 @@ export class App {
         { label: 'Servicios', routerLink: '/catalogo/servicios' },
       ],
     };
+    const proyectos: MenuItem = {
+      label: 'Proyectos',
+      icon: 'pi pi-briefcase',
+      routerLink: '/proyectos',
+    };
     if (rol === 'admin') {
-      return [inicio, catalogo];
+      return [inicio, catalogo, proyectos];
     }
     return [
       inicio,
       catalogo,
+      proyectos,
       {
         label: 'Mis consumos',
         icon: 'pi pi-clock',

@@ -8,6 +8,7 @@ import { RecursosPage } from './catalogo/recursos.page';
 import { ServiciosPage } from './catalogo/servicios.page';
 import { HomePage } from './home/home.page';
 import { PlaceholderPage } from './placeholder/placeholder.page';
+import { ProyectosPage } from './proyectos/proyectos.page';
 
 export const appRoutes: Routes = [
   {
@@ -48,6 +49,12 @@ export const appRoutes: Routes = [
         title: 'Servicios · Presupuestos',
       },
     ],
+  },
+  {
+    path: 'proyectos',
+    component: ProyectosPage,
+    canActivate: [authGuard],
+    title: 'Proyectos · Presupuestos',
   },
   {
     path: 'consultor',

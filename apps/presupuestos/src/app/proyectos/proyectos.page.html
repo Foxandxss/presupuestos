@@ -1,0 +1,239 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="mx-auto max-w-6xl">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-semibold text-slate-800">Proyectos</h1>
+    @if (esAdmin()) {
+      <p-button
+        label="Nuevo proyecto"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    }
+  </div>
+
+  <p-table
+    [value]="proyectos()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    [loading]="cargando()"
+    sortMode="single"
+    dataKey="id"
+    [tableStyle]="{ 'min-width': '60rem' }"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="id" style="width: 5rem">
+          ID <p-sortIcon field="id"></p-sortIcon>
+        </th>
+        <th pSortableColumn="nombre">
+          Nombre <p-sortIcon field="nombre"></p-sortIcon>
+        </th>
+        <th pSortableColumn="fechaInicio" style="width: 9rem">
+          Inicio <p-sortIcon field="fechaInicio"></p-sortIcon>
+        </th>
+        <th pSortableColumn="fechaFin" style="width: 9rem">
+          Fin <p-sortIcon field="fechaFin"></p-sortIcon>
+        </th>
+        <th style="width: 11rem">Horas estimadas</th>
+        @if (esAdmin()) {
+          <th style="width: 9rem">Acciones</th>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>{{ row.id }}</td>
+        <td>
+          <div class="font-medium">{{ row.nombre }}</div>
+          @if (row.descripcion) {
+            <div class="text-xs text-slate-500">{{ row.descripcion }}</div>
+          }
+        </td>
+        <td>{{ row.fechaInicio }}</td>
+        <td>{{ row.fechaFin ?? '—' }}</td>
+        <td>
+          <div>
+            <strong>{{ totalHorasEstimadas(row) | number: '1.0-2' }}</strong>
+            <span class="text-xs text-slate-500"> ({{ row.estimaciones.length }} perfiles)</span>
+          </div>
+          @if (row.estimaciones.length > 0) {
+            <ul class="text-xs text-slate-600 mt-1 list-disc list-inside">
+              @for (est of row.estimaciones; track est.id) {
+                <li>{{ nombrePerfil(est.perfilTecnicoId) }}: {{ est.horasEstimadas | number: '1.0-2' }} h</li>
+              }
+            </ul>
+          }
+        </td>
+        @if (esAdmin()) {
+          <td>
+            <div class="flex gap-2">
+              <p-button
+                icon="pi pi-pencil"
+                size="small"
+                severity="secondary"
+                [text]="true"
+                ariaLabel="Editar"
+                (onClick)="abrirEditar(row)"
+              ></p-button>
+              <p-button
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                [text]="true"
+                ariaLabel="Eliminar"
+                (onClick)="eliminar(row)"
+              ></p-button>
+            </div>
+          </td>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td [attr.colspan]="esAdmin() ? 6 : 5" class="text-center text-slate-500">
+          Sin proyectos registrados.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [header]="editandoId() === null ? 'Nuevo proyecto' : 'Editar proyecto'"
+  [modal]="true"
+  [style]="{ width: '48rem' }"
+  [closeOnEscape]="true"
+>
+  <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-1">
+      <label for="proyecto-nombre" class="text-sm text-slate-700">Nombre</label>
+      <input
+        pInputText
+        id="proyecto-nombre"
+        type="text"
+        formControlName="nombre"
+        autocomplete="off"
+      />
+      @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
+        <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
+      }
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="proyecto-descripcion" class="text-sm text-slate-700">Descripción</label>
+      <textarea
+        pTextarea
+        id="proyecto-descripcion"
+        formControlName="descripcion"
+        rows="2"
+      ></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="proyecto-fecha-inicio" class="text-sm text-slate-700">Fecha de inicio</label>
+        <p-datePicker
+          inputId="proyecto-fecha-inicio"
+          formControlName="fechaInicio"
+          dateFormat="yy-mm-dd"
+          appendTo="body"
+        ></p-datePicker>
+        @if (form.controls['fechaInicio'].invalid && form.controls['fechaInicio'].touched) {
+          <small class="text-red-600">Fecha de inicio obligatoria.</small>
+        }
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="proyecto-fecha-fin" class="text-sm text-slate-700">Fecha de fin (opcional)</label>
+        <p-datePicker
+          inputId="proyecto-fecha-fin"
+          formControlName="fechaFin"
+          dateFormat="yy-mm-dd"
+          [showButtonBar]="true"
+          appendTo="body"
+        ></p-datePicker>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold text-slate-800">Estimaciones por perfil</h2>
+        <p-button
+          type="button"
+          label="Añadir perfil"
+          icon="pi pi-plus"
+          size="small"
+          severity="secondary"
+          (onClick)="agregarEstimacion()"
+        ></p-button>
+      </div>
+
+      <div formArrayName="estimaciones" class="flex flex-col gap-2">
+        @if (estimacionesArray.length === 0) {
+          <p class="text-sm text-slate-500 italic">
+            Sin estimaciones. Añade un perfil para empezar.
+          </p>
+        }
+        @for (fila of estimacionesArray.controls; track fila; let i = $index) {
+          <div [formGroupName]="i" class="grid grid-cols-[1fr_10rem_3rem] gap-2 items-start">
+            <div class="flex flex-col gap-1">
+              <p-select
+                [inputId]="'estim-perfil-' + i"
+                formControlName="perfilTecnicoId"
+                [options]="perfiles()"
+                optionLabel="nombre"
+                optionValue="id"
+                placeholder="Perfil técnico"
+                appendTo="body"
+              ></p-select>
+              @if (fila.get('perfilTecnicoId')?.invalid && fila.get('perfilTecnicoId')?.touched) {
+                <small class="text-red-600">Selecciona un perfil.</small>
+              }
+            </div>
+            <div class="flex flex-col gap-1">
+              <p-inputNumber
+                [inputId]="'estim-horas-' + i"
+                formControlName="horasEstimadas"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                [min]="0"
+                placeholder="Horas"
+              ></p-inputNumber>
+              @if (fila.get('horasEstimadas')?.invalid && fila.get('horasEstimadas')?.touched) {
+                <small class="text-red-600">Horas no negativas.</small>
+              }
+            </div>
+            <p-button
+              type="button"
+              icon="pi pi-trash"
+              size="small"
+              severity="danger"
+              [text]="true"
+              ariaLabel="Quitar estimación"
+              (onClick)="quitarEstimacion(i)"
+            ></p-button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <p-button
+        type="button"
+        label="Cancelar"
+        severity="secondary"
+        [text]="true"
+        (onClick)="cerrarDialog()"
+      ></p-button>
+      <p-button
+        type="submit"
+        label="Guardar"
+        icon="pi pi-check"
+        [disabled]="form.invalid"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>

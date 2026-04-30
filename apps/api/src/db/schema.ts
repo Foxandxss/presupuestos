@@ -1,12 +1,12 @@
-// Esquema Drizzle. Pedidos, líneas, consumos y proyectos llegarán en slices
-// posteriores; este pase añade el catálogo (proveedores, perfiles técnicos,
-// recursos y servicios) sobre la tabla `usuarios` introducida en el slice 2.
+// Esquema Drizzle. Pedidos, líneas y consumos llegarán en slices posteriores;
+// este pase añade Proyectos y Estimaciones por Perfil sobre el catálogo del
+// slice anterior y la tabla `usuarios` del slice 2.
 
 import { sql } from 'drizzle-orm';
 import {
   integer,
-  real,
   sqliteTable,
+  real,
   text,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
@@ -111,3 +111,48 @@ export const servicios = sqliteTable(
 
 export type Servicio = typeof servicios.$inferSelect;
 export type ServicioNuevo = typeof servicios.$inferInsert;
+
+export const proyectos = sqliteTable('proyectos', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  nombre: text('nombre').notNull().unique(),
+  descripcion: text('descripcion'),
+  fechaInicio: text('fecha_inicio').notNull(),
+  fechaFin: text('fecha_fin'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+});
+
+export type Proyecto = typeof proyectos.$inferSelect;
+export type ProyectoNuevo = typeof proyectos.$inferInsert;
+
+export const estimacionesPerfil = sqliteTable(
+  'estimaciones_perfil',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    proyectoId: integer('proyecto_id')
+      .notNull()
+      .references(() => proyectos.id, { onDelete: 'cascade' }),
+    perfilTecnicoId: integer('perfil_tecnico_id')
+      .notNull()
+      .references(() => perfilesTecnicos.id, { onDelete: 'restrict' }),
+    horasEstimadas: real('horas_estimadas').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(CURRENT_TIMESTAMP)`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => ({
+    proyectoPerfilUnique: uniqueIndex(
+      'estimaciones_proyecto_perfil_unique',
+    ).on(table.proyectoId, table.perfilTecnicoId),
+  }),
+);
+
+export type EstimacionPerfil = typeof estimacionesPerfil.$inferSelect;
+export type EstimacionPerfilNueva = typeof estimacionesPerfil.$inferInsert;
