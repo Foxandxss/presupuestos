@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, guestGuard } from './auth/auth.guard';
+import { authGuard, guestGuard, roleGuard } from './auth/auth.guard';
 import { LoginPage } from './auth/login.page';
 import { PerfilesTecnicosPage } from './catalogo/perfiles-tecnicos.page';
 import { ProveedoresPage } from './catalogo/proveedores.page';
@@ -10,6 +10,9 @@ import { ConsumosPage } from './consumos/consumos.page';
 import { HomePage } from './home/home.page';
 import { PedidosPage } from './pedidos/pedidos.page';
 import { ProyectosPage } from './proyectos/proyectos.page';
+import { ReporteFacturacionPage } from './reportes/reporte-facturacion.page';
+import { ReporteHorasPage } from './reportes/reporte-horas.page';
+import { ReportePedidosPage } from './reportes/reporte-pedidos.page';
 
 export const appRoutes: Routes = [
   {
@@ -68,6 +71,28 @@ export const appRoutes: Routes = [
     component: ConsumosPage,
     canActivate: [authGuard],
     title: 'Consumos · Presupuestos',
+  },
+  {
+    path: 'reportes',
+    canActivate: [authGuard, roleGuard('admin')],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'pedidos' },
+      {
+        path: 'pedidos',
+        component: ReportePedidosPage,
+        title: 'Reporte de pedidos · Presupuestos',
+      },
+      {
+        path: 'horas',
+        component: ReporteHorasPage,
+        title: 'Estimadas vs Consumidas · Presupuestos',
+      },
+      {
+        path: 'facturacion',
+        component: ReporteFacturacionPage,
+        title: 'Facturación mensual · Presupuestos',
+      },
+    ],
   },
   { path: '', pathMatch: 'full', redirectTo: 'inicio' },
   { path: '**', redirectTo: 'inicio' },

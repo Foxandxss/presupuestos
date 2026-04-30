@@ -50,7 +50,7 @@ describe('App (shell)', () => {
     expect(compiled.querySelector('p-menubar')).toBeNull();
   });
 
-  it('muestra el menú completo (Catálogo, Proyectos, Pedidos, Consumos) para admin', async () => {
+  it('muestra el menú completo incluyendo Reportes para admin', async () => {
     setupAuth('admin');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -59,9 +59,10 @@ describe('App (shell)', () => {
     expect(compiled.textContent).toContain('Proyectos');
     expect(compiled.textContent).toContain('Pedidos');
     expect(compiled.textContent).toContain('Consumos');
+    expect(compiled.textContent).toContain('Reportes');
   });
 
-  it('muestra el menú completo también para consultor', async () => {
+  it('consultor ve menú operativo pero NO Reportes', async () => {
     setupAuth('consultor');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -69,6 +70,7 @@ describe('App (shell)', () => {
     expect(compiled.textContent).toContain('Proyectos');
     expect(compiled.textContent).toContain('Pedidos');
     expect(compiled.textContent).toContain('Consumos');
+    expect(compiled.textContent).not.toContain('Reportes');
   });
 
   it('logout limpia la sesión almacenada', async () => {

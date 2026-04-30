@@ -66,7 +66,22 @@ export class App {
       icon: 'pi pi-clock',
       routerLink: '/consumos',
     };
-    return [inicio, catalogo, proyectos, pedidos, consumos];
+    const items: MenuItem[] = [inicio, catalogo, proyectos, pedidos, consumos];
+    if (rol === 'admin') {
+      items.push({
+        label: 'Reportes',
+        icon: 'pi pi-chart-bar',
+        items: [
+          { label: 'Pedidos', routerLink: '/reportes/pedidos' },
+          {
+            label: 'Estimadas vs Consumidas',
+            routerLink: '/reportes/horas',
+          },
+          { label: 'Facturación mensual', routerLink: '/reportes/facturacion' },
+        ],
+      });
+    }
+    return items;
   });
 
   cerrarSesion(): void {

@@ -6,6 +6,7 @@ import { ConsumosModule } from '../consumos/consumos.module';
 import { DbModule } from '../db/db.module';
 import { PedidosModule } from '../pedidos/pedidos.module';
 import { ProyectosModule } from '../proyectos/proyectos.module';
+import { ReportesModule } from '../reportes/reportes.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -16,6 +17,7 @@ import { HealthController } from './health.controller';
     ProyectosModule,
     PedidosModule,
     ConsumosModule,
+    ReportesModule,
   ],
   controllers: [HealthController],
   providers: [],
