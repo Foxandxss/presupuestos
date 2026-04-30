@@ -324,7 +324,7 @@ describe('ConsumosService', () => {
     ).toThrow(BadRequestException);
   });
 
-  it('borrar consumo actualiza la lista pero no revierte la auto-transición', () => {
+  it('borrar el último consumo de EnEjecucion regresa a Aprobado', () => {
     const { lineaId, recursoId, pedidoId } = setupPedidoAprobado();
     const consumo = service.create({
       lineaPedidoId: lineaId,
@@ -336,7 +336,74 @@ describe('ConsumosService', () => {
     expect(pedidosService.get(pedidoId).estado).toBe('EnEjecucion');
     service.delete(consumo.id);
     expect(service.list({ pedidoId })).toHaveLength(0);
-    // El estado del pedido no se revierte; la máquina sólo avanza.
+    expect(pedidosService.get(pedidoId).estado).toBe('Aprobado');
+  });
+
+  it('borrar un consumo de un pedido Consumido regresa a EnEjecucion', () => {
+    const { lineaId, recursoId, pedidoId } = setupPedidoAprobado({
+      horasOfertadas: 50,
+    });
+    const primero = service.create({
+      lineaPedidoId: lineaId,
+      recursoId,
+      mes: 5,
+      anio: 2026,
+      horasConsumidas: 30,
+    });
+    service.create({
+      lineaPedidoId: lineaId,
+      recursoId,
+      mes: 6,
+      anio: 2026,
+      horasConsumidas: 20,
+    });
+    expect(pedidosService.get(pedidoId).estado).toBe('Consumido');
+    service.delete(primero.id);
+    expect(pedidosService.get(pedidoId).estado).toBe('EnEjecucion');
+  });
+
+  it('borrar todos los consumos de un pedido Consumido regresa a Aprobado', () => {
+    const { lineaId, recursoId, pedidoId } = setupPedidoAprobado({
+      horasOfertadas: 50,
+    });
+    const a = service.create({
+      lineaPedidoId: lineaId,
+      recursoId,
+      mes: 5,
+      anio: 2026,
+      horasConsumidas: 30,
+    });
+    const b = service.create({
+      lineaPedidoId: lineaId,
+      recursoId,
+      mes: 6,
+      anio: 2026,
+      horasConsumidas: 20,
+    });
+    expect(pedidosService.get(pedidoId).estado).toBe('Consumido');
+    service.delete(a.id);
+    service.delete(b.id);
+    expect(pedidosService.get(pedidoId).estado).toBe('Aprobado');
+  });
+
+  it('borrar consumo conserva EnEjecucion mientras queden otros consumos', () => {
+    const { lineaId, recursoId, pedidoId } = setupPedidoAprobado();
+    const a = service.create({
+      lineaPedidoId: lineaId,
+      recursoId,
+      mes: 5,
+      anio: 2026,
+      horasConsumidas: 10,
+    });
+    service.create({
+      lineaPedidoId: lineaId,
+      recursoId,
+      mes: 6,
+      anio: 2026,
+      horasConsumidas: 15,
+    });
+    expect(pedidosService.get(pedidoId).estado).toBe('EnEjecucion');
+    service.delete(a.id);
     expect(pedidosService.get(pedidoId).estado).toBe('EnEjecucion');
   });
 

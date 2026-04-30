@@ -115,4 +115,78 @@ describe('MaquinaEstadosPedido', () => {
       ).toThrow(TransicionIlegalError);
     });
   });
+
+  describe('recalcularTrasBorrar', () => {
+    it('Consumido + alguna línea sin agotar → EnEjecucion', () => {
+      const lineas = [
+        { horasOfertadas: 100, horasConsumidas: 100 },
+        { horasOfertadas: 50, horasConsumidas: 30 },
+      ];
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('Consumido', lineas),
+      ).toBe('EnEjecucion');
+    });
+
+    it('Consumido + sin consumos en ninguna línea → Aprobado', () => {
+      const lineas = [
+        { horasOfertadas: 100, horasConsumidas: 0 },
+        { horasOfertadas: 50, horasConsumidas: 0 },
+      ];
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('Consumido', lineas),
+      ).toBe('Aprobado');
+    });
+
+    it('Consumido + todas las líneas siguen agotadas → conserva Consumido', () => {
+      const lineas = [
+        { horasOfertadas: 100, horasConsumidas: 100 },
+        { horasOfertadas: 50, horasConsumidas: 50 },
+      ];
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('Consumido', lineas),
+      ).toBe('Consumido');
+    });
+
+    it('EnEjecucion + sin consumos en ninguna línea → Aprobado', () => {
+      const lineas = [
+        { horasOfertadas: 100, horasConsumidas: 0 },
+        { horasOfertadas: 50, horasConsumidas: 0 },
+      ];
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('EnEjecucion', lineas),
+      ).toBe('Aprobado');
+    });
+
+    it('EnEjecucion + algún consumo → conserva EnEjecucion', () => {
+      const lineas = [
+        { horasOfertadas: 100, horasConsumidas: 10 },
+        { horasOfertadas: 50, horasConsumidas: 0 },
+      ];
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('EnEjecucion', lineas),
+      ).toBe('EnEjecucion');
+    });
+
+    it.each<EstadoPedido>([
+      'Borrador',
+      'Solicitado',
+      'Aprobado',
+      'Rechazado',
+      'Cancelado',
+    ])('estado %s no se ve afectado', (estado) => {
+      const lineas = [{ horasOfertadas: 100, horasConsumidas: 0 }];
+      expect(MaquinaEstadosPedido.recalcularTrasBorrar(estado, lineas)).toBe(
+        estado,
+      );
+    });
+
+    it('pedido sin líneas conserva el estado', () => {
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('Consumido', []),
+      ).toBe('Consumido');
+      expect(
+        MaquinaEstadosPedido.recalcularTrasBorrar('EnEjecucion', []),
+      ).toBe('EnEjecucion');
+    });
+  });
 });

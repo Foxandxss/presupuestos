@@ -137,14 +137,50 @@ export class ConsumosService {
   }
 
   delete(id: number): void {
-    this.requireConsumo(id);
+    const consumo = this.requireConsumo(id);
+    const linea = this.lineaDe(consumo.lineaPedidoId);
+    const pedido = this.pedidoOrNull(linea.pedidoId);
     this.db.delete(consumosMensuales).where(eq(consumosMensuales.id, id)).run();
+    if (pedido) {
+      this.recalcularEstadoTrasBorrar(linea.pedidoId, pedido.estado);
+    }
   }
 
   private aplicarAutoTransicion(
     pedidoId: number,
     estadoActual: EstadoPedido,
   ): void {
+    const lineasParaMaquina = this.lineasConTotales(pedidoId);
+    const intermedio =
+      estadoActual === 'Aprobado' ? 'EnEjecucion' : estadoActual;
+    const siguiente = MaquinaEstadosPedido.completaSiAplica(
+      intermedio,
+      lineasParaMaquina,
+    );
+
+    if (siguiente !== estadoActual) {
+      this.actualizarEstado(pedidoId, siguiente);
+    }
+  }
+
+  private recalcularEstadoTrasBorrar(
+    pedidoId: number,
+    estadoActual: EstadoPedido,
+  ): void {
+    if (estadoActual !== 'EnEjecucion' && estadoActual !== 'Consumido') {
+      return;
+    }
+    const lineasParaMaquina = this.lineasConTotales(pedidoId);
+    const siguiente = MaquinaEstadosPedido.recalcularTrasBorrar(
+      estadoActual,
+      lineasParaMaquina,
+    );
+    if (siguiente !== estadoActual) {
+      this.actualizarEstado(pedidoId, siguiente);
+    }
+  }
+
+  private lineasConTotales(pedidoId: number) {
     const lineas = this.db
       .select({
         id: lineasPedido.id,
@@ -166,25 +202,18 @@ export class ConsumosService {
     const totalPorLinea = new Map<number, number>(
       consumosAgregados.map((row) => [row.lineaPedidoId, Number(row.total)]),
     );
-    const lineasParaMaquina = lineas.map((l) => ({
+    return lineas.map((l) => ({
       horasOfertadas: l.horasOfertadas,
       horasConsumidas: totalPorLinea.get(l.id) ?? 0,
     }));
+  }
 
-    const intermedio =
-      estadoActual === 'Aprobado' ? 'EnEjecucion' : estadoActual;
-    const siguiente = MaquinaEstadosPedido.completaSiAplica(
-      intermedio,
-      lineasParaMaquina,
-    );
-
-    if (siguiente !== estadoActual) {
-      this.db
-        .update(pedidos)
-        .set({ estado: siguiente, updatedAt: sql`(CURRENT_TIMESTAMP)` })
-        .where(eq(pedidos.id, pedidoId))
-        .run();
-    }
+  private actualizarEstado(pedidoId: number, estado: EstadoPedido): void {
+    this.db
+      .update(pedidos)
+      .set({ estado, updatedAt: sql`(CURRENT_TIMESTAMP)` })
+      .where(eq(pedidos.id, pedidoId))
+      .run();
   }
 
   private sumaHorasLinea(lineaPedidoId: number): number {

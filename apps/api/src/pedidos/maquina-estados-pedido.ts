@@ -91,4 +91,37 @@ export const MaquinaEstadosPedido = {
     );
     return completo ? 'Consumido' : estadoActual;
   },
+
+  /**
+   * Recalcula el estado de un pedido tras borrar un consumo. Sólo opera
+   * sobre estados accesibles por consumo (EnEjecucion, Consumido) y los
+   * regresa cuando los consumos restantes ya no justifican el estado:
+   * - Si no quedan consumos en ninguna línea → 'Aprobado'.
+   * - Si todas las líneas siguen agotadas → 'Consumido'.
+   * - En cualquier otro caso → 'EnEjecucion'.
+   * Estados manuales (Borrador/Solicitado/Rechazado/Cancelado) y pedidos
+   * sin líneas conservan su estado.
+   */
+  recalcularTrasBorrar(
+    estadoActual: EstadoPedido,
+    lineas: LineaConsumo[],
+  ): EstadoPedido {
+    if (estadoActual !== 'EnEjecucion' && estadoActual !== 'Consumido') {
+      return estadoActual;
+    }
+    if (lineas.length === 0) {
+      return estadoActual;
+    }
+    const sinConsumos = lineas.every((l) => l.horasConsumidas === 0);
+    if (sinConsumos) {
+      return 'Aprobado';
+    }
+    const completo = lineas.every(
+      (l) => l.horasConsumidas >= l.horasOfertadas,
+    );
+    if (completo) {
+      return 'Consumido';
+    }
+    return 'EnEjecucion';
+  },
 };
