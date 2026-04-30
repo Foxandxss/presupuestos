@@ -1,0 +1,253 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="mx-auto max-w-7xl">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-semibold text-slate-800">Pedidos</h1>
+    @if (esAdmin()) {
+      <p-button
+        label="Nuevo pedido"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    }
+  </div>
+
+  <p-table
+    [value]="pedidos()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    [loading]="cargando()"
+    sortMode="single"
+    dataKey="id"
+    [tableStyle]="{ 'min-width': '70rem' }"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="id" style="width: 5rem">
+          ID <p-sortIcon field="id"></p-sortIcon>
+        </th>
+        <th>Proyecto</th>
+        <th>Proveedor</th>
+        <th pSortableColumn="estado" style="width: 9rem">
+          Estado <p-sortIcon field="estado"></p-sortIcon>
+        </th>
+        <th style="width: 6rem">Líneas</th>
+        <th style="width: 9rem">Total estimado</th>
+        @if (esAdmin()) {
+          <th style="width: 16rem">Acciones</th>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>{{ row.id }}</td>
+        <td>{{ nombreProyecto(row.proyectoId) }}</td>
+        <td>{{ nombreProveedor(row.proveedorId) }}</td>
+        <td>
+          <p-tag [value]="row.estado" [severity]="severidadEstado(row.estado)"></p-tag>
+        </td>
+        <td>{{ row.lineas.length }}</td>
+        <td>{{ totalPresupuesto(row) | number: '1.2-2' }} €</td>
+        @if (esAdmin()) {
+          <td>
+            <div class="flex flex-wrap gap-1">
+              <p-button
+                icon="pi pi-eye"
+                size="small"
+                severity="secondary"
+                [text]="true"
+                ariaLabel="Ver / editar"
+                (onClick)="abrirEditar(row)"
+              ></p-button>
+              @for (acc of accionesDisponibles(row.estado); track acc.accion) {
+                <p-button
+                  [label]="acc.label"
+                  [icon]="acc.icon"
+                  size="small"
+                  [severity]="acc.severity"
+                  [outlined]="true"
+                  (onClick)="ejecutarAccion(row, acc)"
+                ></p-button>
+              }
+              @if (esEditable(row.estado)) {
+                <p-button
+                  icon="pi pi-trash"
+                  size="small"
+                  severity="danger"
+                  [text]="true"
+                  ariaLabel="Eliminar"
+                  (onClick)="eliminar(row)"
+                ></p-button>
+              }
+            </div>
+          </td>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td [attr.colspan]="esAdmin() ? 7 : 6" class="text-center text-slate-500">
+          Sin pedidos registrados.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [header]="
+    editandoId() === null
+      ? 'Nuevo pedido'
+      : 'Pedido #' + editandoId() + ' (' + estadoActual() + ')'
+  "
+  [modal]="true"
+  [style]="{ width: '64rem' }"
+  [closeOnEscape]="true"
+>
+  <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-4">
+    <div class="grid grid-cols-2 gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="pedido-proyecto" class="text-sm text-slate-700">Proyecto</label>
+        <p-select
+          inputId="pedido-proyecto"
+          formControlName="proyectoId"
+          [options]="proyectos()"
+          optionLabel="nombre"
+          optionValue="id"
+          placeholder="Selecciona proyecto"
+          appendTo="body"
+        ></p-select>
+        @if (form.controls['proyectoId'].invalid && form.controls['proyectoId'].touched) {
+          <small class="text-red-600">Proyecto obligatorio.</small>
+        }
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="pedido-proveedor" class="text-sm text-slate-700">Proveedor</label>
+        <p-select
+          inputId="pedido-proveedor"
+          formControlName="proveedorId"
+          [options]="proveedores()"
+          optionLabel="nombre"
+          optionValue="id"
+          placeholder="Selecciona proveedor"
+          appendTo="body"
+        ></p-select>
+        @if (form.controls['proveedorId'].invalid && form.controls['proveedorId'].touched) {
+          <small class="text-red-600">Proveedor obligatorio.</small>
+        }
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold text-slate-800">Líneas</h2>
+        @if (esEditable(estadoActual())) {
+          <p-button
+            type="button"
+            label="Añadir línea"
+            icon="pi pi-plus"
+            size="small"
+            severity="secondary"
+            (onClick)="agregarLinea()"
+          ></p-button>
+        }
+      </div>
+
+      <div formArrayName="lineas" class="flex flex-col gap-2">
+        @if (lineasArray.length === 0) {
+          <p class="text-sm text-slate-500 italic">
+            Sin líneas. Añade una para empezar.
+          </p>
+        }
+        @for (fila of lineasArray.controls; track fila; let i = $index) {
+          <div
+            [formGroupName]="i"
+            class="grid grid-cols-[1fr_8rem_8rem_6rem_7rem_3rem] gap-2 items-start border border-slate-200 rounded p-2"
+          >
+            <div class="flex flex-col gap-1">
+              <p-select
+                [inputId]="'linea-perfil-' + i"
+                formControlName="perfilTecnicoId"
+                [options]="perfiles()"
+                optionLabel="nombre"
+                optionValue="id"
+                placeholder="Perfil"
+                appendTo="body"
+                (onChange)="onPerfilChange(i)"
+              ></p-select>
+              @if (fila.get('perfilTecnicoId')?.invalid && fila.get('perfilTecnicoId')?.touched) {
+                <small class="text-red-600">Perfil obligatorio.</small>
+              }
+            </div>
+            <p-datePicker
+              [inputId]="'linea-inicio-' + i"
+              formControlName="fechaInicio"
+              dateFormat="yy-mm-dd"
+              appendTo="body"
+              placeholder="Inicio"
+            ></p-datePicker>
+            <p-datePicker
+              [inputId]="'linea-fin-' + i"
+              formControlName="fechaFin"
+              dateFormat="yy-mm-dd"
+              appendTo="body"
+              placeholder="Fin"
+            ></p-datePicker>
+            <p-inputNumber
+              [inputId]="'linea-horas-' + i"
+              formControlName="horasOfertadas"
+              mode="decimal"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              [min]="0"
+              placeholder="Horas"
+            ></p-inputNumber>
+            <p-inputNumber
+              [inputId]="'linea-precio-' + i"
+              formControlName="precioHora"
+              mode="currency"
+              currency="EUR"
+              [min]="0"
+              placeholder="€/h"
+            ></p-inputNumber>
+            @if (esEditable(estadoActual())) {
+              <p-button
+                type="button"
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                [text]="true"
+                ariaLabel="Quitar línea"
+                (onClick)="quitarLinea(i)"
+              ></p-button>
+            } @else {
+              <span></span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <p-button
+        type="button"
+        label="Cerrar"
+        severity="secondary"
+        [text]="true"
+        (onClick)="cerrarDialog()"
+      ></p-button>
+      @if (esEditable(estadoActual())) {
+        <p-button
+          type="submit"
+          label="Guardar"
+          icon="pi pi-check"
+          [disabled]="form.invalid"
+        ></p-button>
+      }
+    </div>
+  </form>
+</p-dialog>

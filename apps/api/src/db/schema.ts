@@ -1,6 +1,5 @@
-// Esquema Drizzle. Pedidos, líneas y consumos llegarán en slices posteriores;
-// este pase añade Proyectos y Estimaciones por Perfil sobre el catálogo del
-// slice anterior y la tabla `usuarios` del slice 2.
+// Esquema Drizzle. Consumos llegarán en el slice 6; este pase añade Pedidos
+// y Líneas de Pedido sobre Proyectos + Catálogo de slices anteriores.
 
 import { sql } from 'drizzle-orm';
 import {
@@ -156,3 +155,65 @@ export const estimacionesPerfil = sqliteTable(
 
 export type EstimacionPerfil = typeof estimacionesPerfil.$inferSelect;
 export type EstimacionPerfilNueva = typeof estimacionesPerfil.$inferInsert;
+
+export const ESTADOS_PEDIDO = [
+  'Borrador',
+  'Solicitado',
+  'Aprobado',
+  'EnEjecucion',
+  'Consumido',
+  'Rechazado',
+  'Cancelado',
+] as const;
+
+export type EstadoPedido = (typeof ESTADOS_PEDIDO)[number];
+
+export const pedidos = sqliteTable('pedidos', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  proyectoId: integer('proyecto_id')
+    .notNull()
+    .references(() => proyectos.id, { onDelete: 'restrict' }),
+  proveedorId: integer('proveedor_id')
+    .notNull()
+    .references(() => proveedores.id, { onDelete: 'restrict' }),
+  estado: text('estado', { enum: ESTADOS_PEDIDO })
+    .notNull()
+    .default('Borrador'),
+  fechaSolicitud: text('fecha_solicitud'),
+  fechaAprobacion: text('fecha_aprobacion'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+});
+
+export type Pedido = typeof pedidos.$inferSelect;
+export type PedidoNuevo = typeof pedidos.$inferInsert;
+
+export const lineasPedido = sqliteTable('lineas_pedido', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  pedidoId: integer('pedido_id')
+    .notNull()
+    .references(() => pedidos.id, { onDelete: 'cascade' }),
+  perfilTecnicoId: integer('perfil_tecnico_id')
+    .notNull()
+    .references(() => perfilesTecnicos.id, { onDelete: 'restrict' }),
+  fechaInicio: text('fecha_inicio').notNull(),
+  fechaFin: text('fecha_fin').notNull(),
+  horasOfertadas: real('horas_ofertadas').notNull(),
+  precioHora: real('precio_hora').notNull(),
+  tarifaCongelada: integer('tarifa_congelada', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+});
+
+export type LineaPedido = typeof lineasPedido.$inferSelect;
+export type LineaPedidoNueva = typeof lineasPedido.$inferInsert;

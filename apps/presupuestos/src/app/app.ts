@@ -56,13 +56,19 @@ export class App {
       icon: 'pi pi-briefcase',
       routerLink: '/proyectos',
     };
+    const pedidos: MenuItem = {
+      label: 'Pedidos',
+      icon: 'pi pi-file',
+      routerLink: '/pedidos',
+    };
     if (rol === 'admin') {
-      return [inicio, catalogo, proyectos];
+      return [inicio, catalogo, proyectos, pedidos];
     }
     return [
       inicio,
       catalogo,
       proyectos,
+      pedidos,
       {
         label: 'Mis consumos',
         icon: 'pi pi-clock',

@@ -50,22 +50,24 @@ describe('App (shell)', () => {
     expect(compiled.querySelector('p-menubar')).toBeNull();
   });
 
-  it('muestra menú con items "Catálogo" y "Proyectos" cuando el usuario es admin', async () => {
+  it('muestra menú con items "Catálogo", "Proyectos" y "Pedidos" cuando el usuario es admin', async () => {
     setupAuth('admin');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('p-menubar')).not.toBeNull();
     expect(compiled.textContent).toContain('Catálogo');
     expect(compiled.textContent).toContain('Proyectos');
+    expect(compiled.textContent).toContain('Pedidos');
     expect(compiled.textContent).not.toContain('Mis consumos');
   });
 
-  it('muestra "Catálogo", "Proyectos" y "Mis consumos" cuando el usuario es consultor', async () => {
+  it('muestra "Catálogo", "Proyectos", "Pedidos" y "Mis consumos" cuando el usuario es consultor', async () => {
     setupAuth('consultor');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Catálogo');
     expect(compiled.textContent).toContain('Proyectos');
+    expect(compiled.textContent).toContain('Pedidos');
     expect(compiled.textContent).toContain('Mis consumos');
   });
 

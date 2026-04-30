@@ -29,6 +29,13 @@
       "when": 1777566627171,
       "tag": "0003_absurd_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1777567254334,
+      "tag": "0004_chemical_lethal_legion",
+      "breakpoints": true
     }
   ]
 }

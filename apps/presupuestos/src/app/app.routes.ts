@@ -7,6 +7,7 @@ import { ProveedoresPage } from './catalogo/proveedores.page';
 import { RecursosPage } from './catalogo/recursos.page';
 import { ServiciosPage } from './catalogo/servicios.page';
 import { HomePage } from './home/home.page';
+import { PedidosPage } from './pedidos/pedidos.page';
 import { PlaceholderPage } from './placeholder/placeholder.page';
 import { ProyectosPage } from './proyectos/proyectos.page';
 
@@ -55,6 +56,12 @@ export const appRoutes: Routes = [
     component: ProyectosPage,
     canActivate: [authGuard],
     title: 'Proyectos · Presupuestos',
+  },
+  {
+    path: 'pedidos',
+    component: PedidosPage,
+    canActivate: [authGuard],
+    title: 'Pedidos · Presupuestos',
   },
   {
     path: 'consultor',
