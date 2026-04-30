@@ -1,28 +1,56 @@
-# Angular specific
-/dist/
-/out-tsc/
-/tmp/
-/coverage/
-/e2e/test-output/
+# compiled output
+dist/
+out-tsc/
+tmp/
+coverage/
+test-output/
+
+# dependencies
+node_modules/
+
+# Angular cache
 /.angular/
-.angular/
 
-# Node modules and dependency files
-/node_modules/
-/package-lock.json
-/yarn.lock
-
-# Environment files
+# Environment
 /.env
 
-# Angular CLI and build artefacts
-/.angular-cli.json
-/.ng/
-
-# TypeScript cache
+# TypeScript build info
 *.tsbuildinfo
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# yarn lockfile (we use npm; package-lock.json is committed)
+/yarn.lock
+
+# Nx
+.nx/cache
+.nx/workspace-data
+.nx/polygraph
+.nx/self-healing
+
+# IDE
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local DB
+*.sqlite
+*.sqlite-journal
+
+# Claude / agents
+.claude/worktrees
+.claude/settings.local.json
+
+test-output
+
+.angular
