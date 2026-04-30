@@ -36,6 +36,13 @@
       "when": 1777567254334,
       "tag": "0004_chemical_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1777567955886,
+      "tag": "0005_curvy_sunspot",
+      "breakpoints": true
     }
   ]
 }

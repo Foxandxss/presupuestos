@@ -1,14 +1,14 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, guestGuard, roleGuard } from './auth/auth.guard';
+import { authGuard, guestGuard } from './auth/auth.guard';
 import { LoginPage } from './auth/login.page';
 import { PerfilesTecnicosPage } from './catalogo/perfiles-tecnicos.page';
 import { ProveedoresPage } from './catalogo/proveedores.page';
 import { RecursosPage } from './catalogo/recursos.page';
 import { ServiciosPage } from './catalogo/servicios.page';
+import { ConsumosPage } from './consumos/consumos.page';
 import { HomePage } from './home/home.page';
 import { PedidosPage } from './pedidos/pedidos.page';
-import { PlaceholderPage } from './placeholder/placeholder.page';
 import { ProyectosPage } from './proyectos/proyectos.page';
 
 export const appRoutes: Routes = [
@@ -64,15 +64,10 @@ export const appRoutes: Routes = [
     title: 'Pedidos · Presupuestos',
   },
   {
-    path: 'consultor',
-    canActivate: [authGuard, roleGuard('consultor')],
-    children: [
-      {
-        path: 'consumos',
-        component: PlaceholderPage,
-        data: { titulo: 'Mis consumos' },
-      },
-    ],
+    path: 'consumos',
+    component: ConsumosPage,
+    canActivate: [authGuard],
+    title: 'Consumos · Presupuestos',
   },
   { path: '', pathMatch: 'full', redirectTo: 'inicio' },
   { path: '**', redirectTo: 'inicio' },

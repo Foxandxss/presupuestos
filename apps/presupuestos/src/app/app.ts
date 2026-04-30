@@ -61,20 +61,12 @@ export class App {
       icon: 'pi pi-file',
       routerLink: '/pedidos',
     };
-    if (rol === 'admin') {
-      return [inicio, catalogo, proyectos, pedidos];
-    }
-    return [
-      inicio,
-      catalogo,
-      proyectos,
-      pedidos,
-      {
-        label: 'Mis consumos',
-        icon: 'pi pi-clock',
-        routerLink: '/consultor/consumos',
-      },
-    ];
+    const consumos: MenuItem = {
+      label: 'Consumos',
+      icon: 'pi pi-clock',
+      routerLink: '/consumos',
+    };
+    return [inicio, catalogo, proyectos, pedidos, consumos];
   });
 
   cerrarSesion(): void {

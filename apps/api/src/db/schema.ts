@@ -1,5 +1,5 @@
-// Esquema Drizzle. Consumos llegarán en el slice 6; este pase añade Pedidos
-// y Líneas de Pedido sobre Proyectos + Catálogo de slices anteriores.
+// Esquema Drizzle. Slice 6 añade ConsumosMensuales sobre Líneas de Pedido +
+// Recursos.
 
 import { sql } from 'drizzle-orm';
 import {
@@ -217,3 +217,36 @@ export const lineasPedido = sqliteTable('lineas_pedido', {
 
 export type LineaPedido = typeof lineasPedido.$inferSelect;
 export type LineaPedidoNueva = typeof lineasPedido.$inferInsert;
+
+export const consumosMensuales = sqliteTable(
+  'consumos_mensuales',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    lineaPedidoId: integer('linea_pedido_id')
+      .notNull()
+      .references(() => lineasPedido.id, { onDelete: 'cascade' }),
+    recursoId: integer('recurso_id')
+      .notNull()
+      .references(() => recursos.id, { onDelete: 'restrict' }),
+    mes: integer('mes').notNull(),
+    anio: integer('anio').notNull(),
+    horasConsumidas: real('horas_consumidas').notNull(),
+    fechaRegistro: text('fecha_registro')
+      .notNull()
+      .default(sql`(CURRENT_TIMESTAMP)`),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(CURRENT_TIMESTAMP)`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => ({
+    lineaRecursoMesAnioUnique: uniqueIndex(
+      'consumos_linea_recurso_mes_anio_unique',
+    ).on(table.lineaPedidoId, table.recursoId, table.mes, table.anio),
+  }),
+);
+
+export type ConsumoMensual = typeof consumosMensuales.$inferSelect;
+export type ConsumoMensualNuevo = typeof consumosMensuales.$inferInsert;
