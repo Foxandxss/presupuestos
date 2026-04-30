@@ -1,37 +1,68 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
-  signal,
 } from '@angular/core';
-import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
+import { Router, RouterOutlet } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { MenubarModule } from 'primeng/menubar';
+import { PrimeTemplate } from 'primeng/api';
+import type { MenuItem } from 'primeng/api';
 
-interface HealthResponse {
-  status: string;
-}
+import { AuthService } from './auth/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CardModule, TagModule],
+  imports: [RouterOutlet, MenubarModule, ButtonModule, PrimeTemplate],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   protected readonly title = 'presupuestos';
-  protected readonly health = signal<HealthResponse | null>(null);
-  protected readonly error = signal<string | null>(null);
+  protected readonly autenticado = this.auth.autenticado;
+  protected readonly usuario = this.auth.usuario;
 
-  constructor() {
-    this.http.get<HealthResponse>('/api/health').subscribe({
-      next: (response) => this.health.set(response),
-      error: (err: { message?: string }) =>
-        this.error.set(err.message ?? 'Error desconocido'),
-    });
+  protected readonly menuItems = computed<MenuItem[]>(() => {
+    const rol = this.auth.rol();
+    if (!rol) {
+      return [];
+    }
+    const inicio: MenuItem = {
+      label: 'Inicio',
+      icon: 'pi pi-home',
+      routerLink: '/inicio',
+    };
+    if (rol === 'admin') {
+      return [
+        inicio,
+        {
+          label: 'Catálogo',
+          icon: 'pi pi-list',
+          routerLink: '/admin/catalogo',
+        },
+      ];
+    }
+    return [
+      inicio,
+      {
+        label: 'Mis consumos',
+        icon: 'pi pi-clock',
+        routerLink: '/consultor/consumos',
+      },
+    ];
+  });
+
+  cerrarSesion(): void {
+    this.auth.logout();
+  }
+
+  irALogin(): void {
+    void this.router.navigateByUrl('/login');
   }
 }

@@ -46,6 +46,8 @@ Thumbs.db
 # Local DB
 *.sqlite
 *.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
 
 # Claude / agents
 .claude/worktrees

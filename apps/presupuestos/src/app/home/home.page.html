@@ -1,0 +1,18 @@
+<div class="mx-auto max-w-2xl">
+  <h1 class="mb-6 text-3xl font-semibold text-slate-800">Inicio</h1>
+
+  <p-card header="Estado de la API" subheader="Healthcheck end-to-end">
+    <div class="flex items-center gap-3">
+      @if (health(); as h) {
+        <p-tag severity="success" [value]="h.status" icon="pi pi-check"></p-tag>
+        <span class="text-slate-700">El backend responde en /api/health</span>
+      } @else if (error(); as err) {
+        <p-tag severity="danger" [value]="'error'" icon="pi pi-times"></p-tag>
+        <span class="text-slate-700">{{ err }}</span>
+      } @else {
+        <p-tag severity="warn" [value]="'cargando'" icon="pi pi-spin pi-spinner"></p-tag>
+        <span class="text-slate-700">Comprobando…</span>
+      }
+    </div>
+  </p-card>
+</div>

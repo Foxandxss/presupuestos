@@ -8,6 +8,13 @@
       "when": 1777564089335,
       "tag": "0000_thick_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1777564409711,
+      "tag": "0001_left_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

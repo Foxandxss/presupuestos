@@ -1,39 +1,78 @@
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { App } from './app';
+import { AuthService } from './auth/auth.service';
 
-describe('App', () => {
-  let httpController: HttpTestingController;
+@Component({ selector: 'app-stub', standalone: true, template: '' })
+class StubPage {}
 
-  beforeEach(async () => {
+const routesStub = [{ path: 'login', component: StubPage }];
+
+describe('App (shell)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function setupAuth(rol: 'admin' | 'consultor' | null) {
+    if (rol) {
+      localStorage.setItem(
+        'presupuestos.auth',
+        JSON.stringify({
+          accessToken: 'fake-token',
+          usuario: { id: 1, email: `${rol}@x.com`, rol },
+        }),
+      );
+    }
+  }
+
+  async function render() {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter(routesStub),
       ],
     }).compileComponents();
-
-    httpController = TestBed.inject(HttpTestingController);
-  });
-
-  afterEach(() => httpController.verify());
-
-  it('renders the app title and the health response', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    httpController.expectOne('/api/health').flush({ status: 'ok' });
-    await fixture.whenStable();
-    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('no muestra el menubar cuando no hay sesión', async () => {
+    const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Presupuestos');
-    expect(compiled.textContent).toContain('ok');
+    expect(compiled.querySelector('p-menubar')).toBeNull();
+  });
+
+  it('muestra menú con item "Catálogo" cuando el usuario es admin', async () => {
+    setupAuth('admin');
+    const fixture = await render();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('p-menubar')).not.toBeNull();
+    expect(compiled.textContent).toContain('Catálogo');
+    expect(compiled.textContent).not.toContain('Mis consumos');
+  });
+
+  it('muestra menú con item "Mis consumos" cuando el usuario es consultor', async () => {
+    setupAuth('consultor');
+    const fixture = await render();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Mis consumos');
+    expect(compiled.textContent).not.toContain('Catálogo');
+  });
+
+  it('logout limpia la sesión almacenada', async () => {
+    setupAuth('admin');
+    await render();
+    const auth = TestBed.inject(AuthService);
+    auth.logout();
+    expect(localStorage.getItem('presupuestos.auth')).toBeNull();
+    expect(auth.autenticado()).toBe(false);
   });
 });
