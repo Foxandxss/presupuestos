@@ -59,12 +59,12 @@ describe('App (shell)', () => {
     expect(compiled.textContent).not.toContain('Mis consumos');
   });
 
-  it('muestra menú con item "Mis consumos" cuando el usuario es consultor', async () => {
+  it('muestra "Catálogo" y "Mis consumos" cuando el usuario es consultor', async () => {
     setupAuth('consultor');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Catálogo');
     expect(compiled.textContent).toContain('Mis consumos');
-    expect(compiled.textContent).not.toContain('Catálogo');
   });
 
   it('logout limpia la sesión almacenada', async () => {

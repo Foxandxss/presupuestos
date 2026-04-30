@@ -15,6 +15,13 @@
       "when": 1777564409711,
       "tag": "0001_left_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777565313541,
+      "tag": "0002_mighty_starjammers",
+      "breakpoints": true
     }
   ]
 }

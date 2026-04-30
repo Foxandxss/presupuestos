@@ -2,6 +2,10 @@ import { Routes } from '@angular/router';
 
 import { authGuard, guestGuard, roleGuard } from './auth/auth.guard';
 import { LoginPage } from './auth/login.page';
+import { PerfilesTecnicosPage } from './catalogo/perfiles-tecnicos.page';
+import { ProveedoresPage } from './catalogo/proveedores.page';
+import { RecursosPage } from './catalogo/recursos.page';
+import { ServiciosPage } from './catalogo/servicios.page';
 import { HomePage } from './home/home.page';
 import { PlaceholderPage } from './placeholder/placeholder.page';
 
@@ -19,13 +23,29 @@ export const appRoutes: Routes = [
     title: 'Inicio · Presupuestos',
   },
   {
-    path: 'admin',
-    canActivate: [authGuard, roleGuard('admin')],
+    path: 'catalogo',
+    canActivate: [authGuard],
     children: [
+      { path: '', pathMatch: 'full', redirectTo: 'proveedores' },
       {
-        path: 'catalogo',
-        component: PlaceholderPage,
-        data: { titulo: 'Catálogo' },
+        path: 'proveedores',
+        component: ProveedoresPage,
+        title: 'Proveedores · Presupuestos',
+      },
+      {
+        path: 'perfiles-tecnicos',
+        component: PerfilesTecnicosPage,
+        title: 'Perfiles técnicos · Presupuestos',
+      },
+      {
+        path: 'recursos',
+        component: RecursosPage,
+        title: 'Recursos · Presupuestos',
+      },
+      {
+        path: 'servicios',
+        component: ServiciosPage,
+        title: 'Servicios · Presupuestos',
       },
     ],
   },

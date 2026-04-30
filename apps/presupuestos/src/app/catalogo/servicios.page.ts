@@ -1,0 +1,227 @@
+import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { forkJoin } from 'rxjs';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
+import { TableModule } from 'primeng/table';
+import { ToastModule } from 'primeng/toast';
+
+import { AuthService } from '../auth/auth.service';
+import {
+  PerfilesTecnicosApi,
+  ProveedoresApi,
+  ServiciosApi,
+} from './catalogo.api';
+import type {
+  PerfilTecnico,
+  Proveedor,
+  Servicio,
+} from './catalogo.types';
+
+@Component({
+  selector: 'app-servicios',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    TableModule,
+    DialogModule,
+    ButtonModule,
+    InputNumberModule,
+    SelectModule,
+    ToastModule,
+    ConfirmDialogModule,
+  ],
+  providers: [MessageService, ConfirmationService],
+  templateUrl: './servicios.page.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ServiciosPage {
+  private readonly api = inject(ServiciosApi);
+  private readonly proveedoresApi = inject(ProveedoresApi);
+  private readonly perfilesApi = inject(PerfilesTecnicosApi);
+  private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(MessageService);
+  private readonly confirm = inject(ConfirmationService);
+
+  protected readonly esAdmin = computed(() => this.auth.rol() === 'admin');
+  protected readonly servicios = signal<Servicio[]>([]);
+  protected readonly proveedores = signal<Proveedor[]>([]);
+  protected readonly perfiles = signal<PerfilTecnico[]>([]);
+  protected readonly cargando = signal(false);
+  protected readonly dialogVisible = signal(false);
+  protected readonly editandoId = signal<number | null>(null);
+
+  protected readonly proveedoresPorId = computed(() => {
+    const map = new Map<number, string>();
+    for (const p of this.proveedores()) {
+      map.set(p.id, p.nombre);
+    }
+    return map;
+  });
+  protected readonly perfilesPorId = computed(() => {
+    const map = new Map<number, string>();
+    for (const p of this.perfiles()) {
+      map.set(p.id, p.nombre);
+    }
+    return map;
+  });
+
+  protected readonly form: FormGroup = this.fb.group({
+    proveedorId: [null as number | null, [Validators.required]],
+    perfilTecnicoId: [null as number | null, [Validators.required]],
+    tarifaPorHora: [
+      null as number | null,
+      [Validators.required, Validators.min(0)],
+    ],
+  });
+
+  constructor() {
+    this.cargar();
+  }
+
+  nombreProveedor(id: number): string {
+    return this.proveedoresPorId().get(id) ?? `#${id}`;
+  }
+
+  nombrePerfil(id: number): string {
+    return this.perfilesPorId().get(id) ?? `#${id}`;
+  }
+
+  private cargar(): void {
+    this.cargando.set(true);
+    forkJoin({
+      servicios: this.api.list(),
+      proveedores: this.proveedoresApi.list(),
+      perfiles: this.perfilesApi.list(),
+    }).subscribe({
+      next: ({ servicios, proveedores, perfiles }) => {
+        this.servicios.set(servicios);
+        this.proveedores.set(proveedores);
+        this.perfiles.set(perfiles);
+        this.cargando.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.cargando.set(false);
+        this.toast.add({
+          severity: 'error',
+          summary: 'Error al cargar',
+          detail: err.message,
+        });
+      },
+    });
+  }
+
+  abrirCrear(): void {
+    this.editandoId.set(null);
+    this.form.reset({
+      proveedorId: null,
+      perfilTecnicoId: null,
+      tarifaPorHora: null,
+    });
+    this.dialogVisible.set(true);
+  }
+
+  abrirEditar(row: Servicio): void {
+    this.editandoId.set(row.id);
+    this.form.reset({
+      proveedorId: row.proveedorId,
+      perfilTecnicoId: row.perfilTecnicoId,
+      tarifaPorHora: row.tarifaPorHora,
+    });
+    this.dialogVisible.set(true);
+  }
+
+  cerrarDialog(): void {
+    this.dialogVisible.set(false);
+  }
+
+  guardar(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    const dto = {
+      proveedorId: this.form.value.proveedorId as number,
+      perfilTecnicoId: this.form.value.perfilTecnicoId as number,
+      tarifaPorHora: this.form.value.tarifaPorHora as number,
+    };
+    const id = this.editandoId();
+    const op = id === null ? this.api.create(dto) : this.api.update(id, dto);
+    op.subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: id === null ? 'Servicio creado' : 'Servicio actualizado',
+        });
+        this.dialogVisible.set(false);
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo guardar',
+          detail: extraerMensaje(err),
+        });
+      },
+    });
+  }
+
+  eliminar(row: Servicio): void {
+    this.confirm.confirm({
+      message: `¿Eliminar el servicio ${this.nombreProveedor(row.proveedorId)} · ${this.nombrePerfil(row.perfilTecnicoId)}?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonProps: { severity: 'danger' },
+      accept: () => {
+        this.api.delete(row.id).subscribe({
+          next: () => {
+            this.toast.add({
+              severity: 'success',
+              summary: 'Servicio eliminado',
+            });
+            this.cargar();
+          },
+          error: (err: HttpErrorResponse) => {
+            this.toast.add({
+              severity: 'error',
+              summary: 'No se pudo eliminar',
+              detail: extraerMensaje(err),
+            });
+          },
+        });
+      },
+    });
+  }
+}
+
+function extraerMensaje(err: HttpErrorResponse): string {
+  const body = err.error as { message?: string | string[] } | undefined;
+  if (Array.isArray(body?.message)) {
+    return body.message.join(', ');
+  }
+  if (typeof body?.message === 'string') {
+    return body.message;
+  }
+  return err.message;
+}

@@ -38,18 +38,25 @@ export class App {
       icon: 'pi pi-home',
       routerLink: '/inicio',
     };
-    if (rol === 'admin') {
-      return [
-        inicio,
+    const catalogo: MenuItem = {
+      label: 'Catálogo',
+      icon: 'pi pi-list',
+      items: [
+        { label: 'Proveedores', routerLink: '/catalogo/proveedores' },
         {
-          label: 'Catálogo',
-          icon: 'pi pi-list',
-          routerLink: '/admin/catalogo',
+          label: 'Perfiles técnicos',
+          routerLink: '/catalogo/perfiles-tecnicos',
         },
-      ];
+        { label: 'Recursos', routerLink: '/catalogo/recursos' },
+        { label: 'Servicios', routerLink: '/catalogo/servicios' },
+      ],
+    };
+    if (rol === 'admin') {
+      return [inicio, catalogo];
     }
     return [
       inicio,
+      catalogo,
       {
         label: 'Mis consumos',
         icon: 'pi pi-clock',
