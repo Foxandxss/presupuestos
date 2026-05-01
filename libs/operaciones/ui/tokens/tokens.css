@@ -1,0 +1,182 @@
+/*
+ * Design tokens del sistema de diseño Presupuestos.
+ *
+ * Light validado en :root. .app-dark queda como placeholder dark — la
+ * validación pixel-a-pixel y el toggle de usuario llegan en el issue #19.
+ *
+ * Naming: vars semánticas (no genéricas). Cuando un componente quiere
+ * "el fondo de la card", lee --surface-card; cuando quiere "el primary",
+ * lee --accent. Así el dark mode sólo tiene que sobreescribir aquí.
+ */
+
+:root {
+  /* Surfaces */
+  --surface-app: #f8fafc;        /* slate-50 */
+  --surface-card: #ffffff;
+  --surface-muted: #f1f5f9;      /* slate-100 */
+  --surface-overlay: rgba(15, 23, 42, 0.4); /* slate-900/40 */
+
+  /* Text */
+  --text-default: #0f172a;       /* slate-900 */
+  --text-muted: #475569;         /* slate-600 */
+  --text-subtle: #64748b;        /* slate-500 */
+  --text-inverse: #ffffff;
+  --text-on-accent: #ffffff;
+
+  /* Borders */
+  --border-subtle: #e2e8f0;      /* slate-200 */
+  --border-default: #cbd5e1;     /* slate-300 */
+  --border-strong: #94a3b8;      /* slate-400 */
+
+  /* Accent (violet-600 / violet-50 para soft) */
+  --accent: #7c3aed;             /* violet-600 */
+  --accent-hover: #6d28d9;       /* violet-700 */
+  --accent-active: #5b21b6;      /* violet-800 */
+  --accent-soft: #f5f3ff;        /* violet-50 */
+  --accent-soft-text: #6d28d9;   /* violet-700 */
+
+  /* Focus ring */
+  --ring-focus: #8b5cf6;         /* violet-500 */
+
+  /* Status semantics — usados por <pre-status-badge> y otros */
+  --status-borrador-bg: #f1f5f9;       /* slate-100 */
+  --status-borrador-text: #475569;     /* slate-600 */
+  --status-borrador-border: transparent;
+
+  --status-solicitado-bg: #fef3c7;     /* amber-100 */
+  --status-solicitado-text: #92400e;   /* amber-800 */
+  --status-solicitado-border: transparent;
+
+  --status-aprobado-bg: #e0f2fe;       /* sky-100 */
+  --status-aprobado-text: #075985;     /* sky-800 */
+  --status-aprobado-border: transparent;
+
+  --status-enejecucion-bg: #d1fae5;    /* emerald-100 */
+  --status-enejecucion-text: #065f46;  /* emerald-800 */
+  --status-enejecucion-border: transparent;
+
+  --status-consumido-bg: transparent;
+  --status-consumido-text: #047857;    /* emerald-700 */
+  --status-consumido-border: #6ee7b7;  /* emerald-300 */
+
+  --status-rechazado-bg: #fee2e2;      /* red-100 */
+  --status-rechazado-text: #991b1b;    /* red-800 */
+  --status-rechazado-border: transparent;
+
+  --status-cancelado-bg: transparent;
+  --status-cancelado-text: #475569;    /* slate-600 */
+  --status-cancelado-border: #cbd5e1;  /* slate-300 */
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06),
+               0 2px 4px -2px rgba(15, 23, 42, 0.04);
+
+  /* Typography */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system,
+               'Segoe UI', Roboto, sans-serif;
+}
+
+.app-dark {
+  /*
+   * Placeholder dark: tokens estructurados pero no validados pixel-a-pixel.
+   * El toggle de usuario y el QA visual de cada componente llegan en #19.
+   */
+  --surface-app: #020617;        /* slate-950 */
+  --surface-card: #0f172a;       /* slate-900 */
+  --surface-muted: #1e293b;      /* slate-800 */
+  --surface-overlay: rgba(2, 6, 23, 0.6);
+
+  --text-default: #f8fafc;       /* slate-50 */
+  --text-muted: #cbd5e1;         /* slate-300 */
+  --text-subtle: #94a3b8;        /* slate-400 */
+  --text-inverse: #0f172a;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: #1e293b;      /* slate-800 */
+  --border-default: #334155;     /* slate-700 */
+  --border-strong: #64748b;      /* slate-500 */
+
+  --accent: #a78bfa;             /* violet-400 */
+  --accent-hover: #c4b5fd;       /* violet-300 */
+  --accent-active: #ddd6fe;      /* violet-200 */
+  --accent-soft: #2e1065;        /* violet-950 */
+  --accent-soft-text: #c4b5fd;   /* violet-300 */
+
+  --ring-focus: #a78bfa;         /* violet-400 */
+
+  --status-borrador-bg: #1e293b;
+  --status-borrador-text: #cbd5e1;
+  --status-borrador-border: transparent;
+
+  --status-solicitado-bg: #78350f;
+  --status-solicitado-text: #fde68a;
+  --status-solicitado-border: transparent;
+
+  --status-aprobado-bg: #075985;
+  --status-aprobado-text: #bae6fd;
+  --status-aprobado-border: transparent;
+
+  --status-enejecucion-bg: #064e3b;
+  --status-enejecucion-text: #a7f3d0;
+  --status-enejecucion-border: transparent;
+
+  --status-consumido-bg: transparent;
+  --status-consumido-text: #6ee7b7;
+  --status-consumido-border: #047857;
+
+  --status-rechazado-bg: #7f1d1d;
+  --status-rechazado-text: #fecaca;
+  --status-rechazado-border: transparent;
+
+  --status-cancelado-bg: transparent;
+  --status-cancelado-text: #cbd5e1;
+  --status-cancelado-border: #475569;
+}
+
+@theme {
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system,
+               'Segoe UI', Roboto, sans-serif;
+
+  --color-surface-app: var(--surface-app);
+  --color-surface-card: var(--surface-card);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-text-default: var(--text-default);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--surface-app);
+  color: var(--text-default);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

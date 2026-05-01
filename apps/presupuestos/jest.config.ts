@@ -16,6 +16,12 @@ module.exports = {
     '^@operaciones/dominio$': '<rootDir>/../../libs/operaciones/dominio/index.ts',
     '^@operaciones/ui/errores$':
       '<rootDir>/../../libs/operaciones/ui/errores/index.ts',
+    '^@operaciones/ui/estados-pedido$':
+      '<rootDir>/../../libs/operaciones/ui/estados-pedido/index.ts',
+    '^@operaciones/ui/iconos$':
+      '<rootDir>/../../libs/operaciones/ui/iconos/index.ts',
+    '^@operaciones/ui/tokens$':
+      '<rootDir>/../../libs/operaciones/ui/tokens/index.ts',
   },
   transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
   snapshotSerializers: [

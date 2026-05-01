@@ -46,7 +46,7 @@
         <td>{{ nombreProyecto(row.proyectoId) }}</td>
         <td>{{ nombreProveedor(row.proveedorId) }}</td>
         <td>
-          <p-tag [value]="row.estado" [severity]="severidadEstado(row.estado)"></p-tag>
+          <pre-status-badge [estado]="row.estado" size="md" />
         </td>
         <td>{{ row.lineas.length }}</td>
         <td>{{ totalPresupuesto(row) | number: '1.2-2' }} €</td>
@@ -102,14 +102,25 @@
   [header]="
     editandoId() === null
       ? 'Nuevo pedido'
-      : 'Pedido #' + editandoId() + ' (' + estadoActual() + ')'
+      : 'Pedido #' + editandoId() + ' (' + etiquetaEstado(estadoActual()) + ')'
   "
   [modal]="true"
   [style]="{ width: '64rem' }"
   [closeOnEscape]="true"
 >
   <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-4">
+    @if (pedidoActual(); as p) {
+      <div class="border-b border-slate-200 pb-4">
+        <pre-status-timeline
+          [estado]="p.estado"
+          [fechaSolicitud]="p.fechaSolicitud"
+          [fechaAprobacion]="p.fechaAprobacion"
+          [fechaTerminacion]="p.updatedAt"
+        />
+      </div>
+    }
     <div class="grid grid-cols-2 gap-4">
+
       <div class="flex flex-col gap-1">
         <label for="pedido-proyecto" class="text-sm text-slate-700">Proyecto</label>
         <p-select

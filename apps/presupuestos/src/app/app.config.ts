@@ -6,8 +6,9 @@ import {
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import Aura from '@primeng/themes/aura';
 import { providePrimeNG } from 'primeng/config';
+
+import { PresupuestosPreset } from '@operaciones/ui/tokens';
 
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
@@ -21,7 +22,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     providePrimeNG({
       theme: {
-        preset: Aura,
+        preset: PresupuestosPreset,
         options: {
           darkModeSelector: '.app-dark',
         },

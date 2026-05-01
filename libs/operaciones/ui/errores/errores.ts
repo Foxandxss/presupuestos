@@ -1,4 +1,4 @@
-import type { RespuestaErrorDominio } from '@operaciones/dominio';
+import type { RespuestaErrorDominio } from '../../dominio';
 
 const COPYS_POR_CODIGO: Record<string, (fields?: Record<string, unknown>) => string> = {
   transicion_ilegal: () =>

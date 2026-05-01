@@ -15,7 +15,6 @@ import {
   Validators,
 } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -23,9 +22,14 @@ import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
+
+import {
+  etiquetaEstadoPedido,
+  StatusBadgeComponent,
+  StatusTimelineComponent,
+} from '@operaciones/ui/estados-pedido';
 
 import { AuthService } from '../auth/auth.service';
 import {
@@ -101,19 +105,6 @@ const ACCIONES_POR_ESTADO: Record<EstadoPedido, AccionDisponible[]> = {
   Cancelado: [],
 };
 
-const SEVERIDAD_ESTADO: Record<
-  EstadoPedido,
-  'info' | 'success' | 'warn' | 'danger' | 'secondary'
-> = {
-  Borrador: 'secondary',
-  Solicitado: 'info',
-  Aprobado: 'success',
-  EnEjecucion: 'success',
-  Consumido: 'success',
-  Rechazado: 'danger',
-  Cancelado: 'warn',
-};
-
 const ESTADOS_EDITABLES: ReadonlySet<EstadoPedido> = new Set([
   'Borrador',
   'Solicitado',
@@ -133,8 +124,8 @@ const ESTADOS_EDITABLES: ReadonlySet<EstadoPedido> = new Set([
     SelectModule,
     ToastModule,
     ConfirmDialogModule,
-    TagModule,
-    BadgeModule,
+    StatusBadgeComponent,
+    StatusTimelineComponent,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './pedidos.page.html',
@@ -161,6 +152,7 @@ export class PedidosPage {
   protected readonly dialogVisible = signal(false);
   protected readonly editandoId = signal<number | null>(null);
   protected readonly estadoActual = signal<EstadoPedido>('Borrador');
+  protected readonly pedidoActual = signal<Pedido | null>(null);
 
   protected readonly proyectosPorId = computed(() => {
     const map = new Map<number, string>();
@@ -208,12 +200,12 @@ export class PedidosPage {
     return this.perfilesPorId().get(id) ?? `#${id}`;
   }
 
-  severidadEstado(estado: EstadoPedido) {
-    return SEVERIDAD_ESTADO[estado];
-  }
-
   accionesDisponibles(estado: EstadoPedido): AccionDisponible[] {
     return ACCIONES_POR_ESTADO[estado];
+  }
+
+  etiquetaEstado(estado: EstadoPedido): string {
+    return etiquetaEstadoPedido(estado);
   }
 
   esEditable(estado: EstadoPedido): boolean {
@@ -258,6 +250,7 @@ export class PedidosPage {
   abrirCrear(): void {
     this.editandoId.set(null);
     this.estadoActual.set('Borrador');
+    this.pedidoActual.set(null);
     this.lineasArray.clear();
     this.form.reset({
       proyectoId: null,
@@ -270,6 +263,7 @@ export class PedidosPage {
   abrirEditar(row: Pedido): void {
     this.editandoId.set(row.id);
     this.estadoActual.set(row.estado);
+    this.pedidoActual.set(row);
     this.lineasArray.clear();
     this.form.patchValue({
       proyectoId: row.proyectoId,
