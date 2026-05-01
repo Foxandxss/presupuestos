@@ -397,7 +397,7 @@ export class PedidosPage {
   }
 
   protected onRowClick(row: Pedido): void {
-    this.abrirEditar(row);
+    void this.router.navigate(['/pedidos', row.id]);
   }
 
   private actualizarParam(clave: string, valor: string | null): void {

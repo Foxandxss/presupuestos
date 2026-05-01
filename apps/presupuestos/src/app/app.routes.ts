@@ -8,6 +8,7 @@ import { RecursosPage } from './catalogo/recursos.page';
 import { ServiciosPage } from './catalogo/servicios.page';
 import { ConsumosPage } from './consumos/consumos.page';
 import { HomePage } from './home/home.page';
+import { PedidoDetailPage } from './pedidos/pedido-detail.page';
 import { PedidosPage } from './pedidos/pedidos.page';
 import { ProyectosPage } from './proyectos/proyectos.page';
 import { ReporteFacturacionPage } from './reportes/reporte-facturacion.page';
@@ -62,9 +63,20 @@ export const appRoutes: Routes = [
   },
   {
     path: 'pedidos',
-    component: PedidosPage,
     canActivate: [authGuard],
-    title: 'Pedidos · Presupuestos',
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        component: PedidosPage,
+        title: 'Pedidos · Presupuestos',
+      },
+      {
+        path: ':id',
+        component: PedidoDetailPage,
+        title: 'Detalle de pedido · Presupuestos',
+      },
+    ],
   },
   {
     path: 'consumos',

@@ -1,0 +1,246 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+@if (noEncontrado()) {
+  <div class="pre-detail__no-encontrado">
+    <pre-error-state
+      titulo="Pedido no encontrado"
+      descripcion="El pedido al que intentas acceder no existe o fue eliminado."
+      (reintentar)="volverALista()"
+    />
+    <p-button
+      label="Volver a Pedidos"
+      icon="pi pi-arrow-left"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="volverALista()"
+    ></p-button>
+  </div>
+} @else if (errorCarga(); as err) {
+  <div class="pre-detail__error">
+    <pre-error-state
+      titulo="No se pudo cargar el pedido"
+      [descripcion]="err"
+      (reintentar)="reintentar()"
+    />
+  </div>
+} @else if (cargando() || pedido() === null) {
+  <pre-loading-state [cuenta]="6" />
+} @else if (pedido(); as p) {
+  <div class="pre-detail">
+    <header class="pre-detail__header">
+      <a routerLink="/pedidos" class="pre-detail__breadcrumb">
+        <span aria-hidden="true">«</span> Pedidos
+      </a>
+      <div class="pre-detail__titulo-fila">
+        <div class="pre-detail__titulo-bloque">
+          <h1 class="pre-detail__titulo">
+            Pedido #{{ p.id }}
+          </h1>
+          <p class="pre-detail__subtitulo">
+            {{ proyecto()?.nombre ?? 'Proyecto #' + p.proyectoId }}
+            ·
+            {{ proveedor()?.nombre ?? 'Proveedor #' + p.proveedorId }}
+          </p>
+        </div>
+        <div class="pre-detail__acciones">
+          <pre-status-badge [estado]="p.estado" size="lg" />
+          @if (esConsumible()) {
+            <p-button
+              label="Registrar consumo"
+              icon="pi pi-plus"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="abrirDrawer()"
+            ></p-button>
+          }
+          @if (accionPrimaria(); as ap) {
+            <p-button
+              [label]="ap.label"
+              [icon]="ap.icon"
+              [severity]="ap.severity === 'success' ? 'success' : undefined"
+              *preIfRol="Rol.Admin"
+              (onClick)="ejecutarPrimaria()"
+            ></p-button>
+          } @else if (mensajeEspera(); as msg) {
+            <span class="pre-detail__espera">{{ msg }}</span>
+          }
+          @if (accionDestructiva(); as ad) {
+            <p-button
+              *preIfRol="Rol.Admin"
+              [label]="ad.label"
+              [icon]="ad.icon"
+              severity="danger"
+              [outlined]="true"
+              (onClick)="ejecutarDestructiva()"
+            ></p-button>
+          }
+        </div>
+      </div>
+    </header>
+
+    <section class="pre-detail__kpis">
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Importe total</span>
+        <span class="pre-kpi__valor">
+          {{ importeTotal() | number: '1.2-2' }} €
+        </span>
+      </div>
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Horas ofertadas</span>
+        <span class="pre-kpi__valor">
+          {{ horasOfertadas() | number: '1.0-2' }} h
+        </span>
+      </div>
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Horas consumidas</span>
+        <span class="pre-kpi__valor">
+          {{ horasConsumidas() | number: '1.0-2' }} h
+        </span>
+      </div>
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Completado</span>
+        <span class="pre-kpi__valor">
+          {{ porcentajeCompletado() }}%
+        </span>
+      </div>
+    </section>
+
+    <section class="pre-detail__seccion">
+      <h2 class="pre-detail__seccion-titulo">Línea de tiempo</h2>
+      <pre-status-timeline
+        [estado]="p.estado"
+        [fechaSolicitud]="p.fechaSolicitud"
+        [fechaAprobacion]="p.fechaAprobacion"
+        [fechaTerminacion]="fechaTerminacion()"
+      />
+    </section>
+
+    <section class="pre-detail__seccion">
+      <h2 class="pre-detail__seccion-titulo">Datos del pedido</h2>
+      <dl class="pre-detail__datos">
+        <div class="pre-detail__dato">
+          <dt>Fecha de solicitud</dt>
+          <dd>{{ formatoFechaCorta(p.fechaSolicitud) ?? '—' }}</dd>
+        </div>
+        <div class="pre-detail__dato">
+          <dt>Fecha de aprobación</dt>
+          <dd>{{ formatoFechaCorta(p.fechaAprobacion) ?? '—' }}</dd>
+        </div>
+        <div class="pre-detail__dato">
+          <dt>Estado</dt>
+          <dd>{{ etiqueta(p.estado) }}</dd>
+        </div>
+        <div class="pre-detail__dato">
+          <dt>Última actualización</dt>
+          <dd>{{ formatoFechaCorta(p.updatedAt) ?? '—' }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="pre-detail__seccion">
+      <h2 class="pre-detail__seccion-titulo">
+        Líneas ({{ p.lineas.length }})
+      </h2>
+      @if (p.lineas.length === 0) {
+        <p class="pre-detail__vacio">Este pedido todavía no tiene líneas.</p>
+      } @else {
+        <p-table [value]="p.lineas" dataKey="id" styleClass="pre-detail__tabla">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Perfil</th>
+              <th style="width: 14rem">Periodo</th>
+              <th style="width: 7rem">Horas</th>
+              <th style="width: 7rem">Tarifa</th>
+              <th style="width: 14rem">Consumido</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-linea>
+            <tr>
+              <td>{{ nombrePerfil(linea.perfilTecnicoId) }}</td>
+              <td>
+                {{ formatoFechaCorta(linea.fechaInicio) }}
+                →
+                {{ formatoFechaCorta(linea.fechaFin) }}
+              </td>
+              <td>{{ linea.horasOfertadas | number: '1.0-2' }} h</td>
+              <td>{{ linea.precioHora | number: '1.2-2' }} €/h</td>
+              <td>
+                <div class="pre-detail__progreso">
+                  <div
+                    class="pre-detail__progreso-barra"
+                    [style.width.%]="porcentajeLinea(linea)"
+                  ></div>
+                  <span class="pre-detail__progreso-texto">
+                    {{ horasConsumidasDeLinea(linea.id) | number: '1.0-2' }} /
+                    {{ linea.horasOfertadas | number: '1.0-2' }} h
+                    ({{ porcentajeLinea(linea) }}%)
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </section>
+
+    <section class="pre-detail__seccion">
+      <h2 class="pre-detail__seccion-titulo">
+        Consumos registrados ({{ consumos().length }})
+      </h2>
+      @if (consumos().length === 0) {
+        <p class="pre-detail__vacio">
+          @if (esConsumible()) {
+            Aún no hay consumos registrados.
+            <button
+              type="button"
+              class="pre-detail__link"
+              (click)="abrirDrawer()"
+            >
+              Registrar el primero →
+            </button>
+          } @else {
+            No se han registrado consumos para este pedido.
+          }
+        </p>
+      } @else {
+        <p-table
+          [value]="consumos()"
+          dataKey="id"
+          styleClass="pre-detail__tabla"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 6rem">Año</th>
+              <th style="width: 5rem">Mes</th>
+              <th>Línea</th>
+              <th>Recurso</th>
+              <th style="width: 7rem">Horas</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-c>
+            <tr>
+              <td>{{ c.anio }}</td>
+              <td>{{ c.mes }}</td>
+              <td>Línea #{{ c.lineaPedidoId }}</td>
+              <td>{{ nombreRecurso(c.recursoId) }}</td>
+              <td>{{ c.horasConsumidas | number: '1.0-2' }} h</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </section>
+  </div>
+
+  <pre-consumo-drawer
+    [abierto]="drawerAbierto()"
+    [pedidos]="pedidosParaDrawer()"
+    [recursos]="recursos()"
+    [perfiles]="perfiles()"
+    [consumosExistentes]="consumos()"
+    [pedidoIdInicial]="p.id"
+    [bloquearPedido]="true"
+    (cerrar)="cerrarDrawer()"
+    (registrado)="onConsumoRegistrado($event)"
+  />
+}

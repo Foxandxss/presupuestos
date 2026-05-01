@@ -1,0 +1,204 @@
+@if (abierto()) {
+  <div
+    class="pre-drawer__backdrop"
+    (click)="onBackdropClick($event)"
+    role="presentation"
+  >
+    <aside
+      class="pre-drawer__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pre-drawer-titulo"
+    >
+      <header class="pre-drawer__header">
+        <h2 id="pre-drawer-titulo" class="pre-drawer__titulo">
+          Registrar consumo
+        </h2>
+        <button
+          type="button"
+          class="pre-drawer__cerrar"
+          aria-label="Cerrar"
+          (click)="onCerrar()"
+        >
+          ×
+        </button>
+      </header>
+
+      <form
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+        class="pre-drawer__form"
+      >
+        @if (!bloquearPedido()) {
+          <div class="pre-drawer__campo" #primerCampo>
+            <label for="drawer-pedido">Pedido</label>
+            <p-select
+              inputId="drawer-pedido"
+              formControlName="pedidoId"
+              [options]="opcionesPedido()"
+              optionLabel="label"
+              optionValue="id"
+              placeholder="Selecciona un pedido aprobado o en ejecución"
+              appendTo="body"
+            ></p-select>
+            @if (
+              form.controls['pedidoId'].invalid &&
+              form.controls['pedidoId'].touched
+            ) {
+              <small class="pre-drawer__error-campo">
+                Pedido obligatorio.
+              </small>
+            }
+          </div>
+        }
+
+        <div class="pre-drawer__campo">
+          <label for="drawer-linea">Línea</label>
+          <p-select
+            inputId="drawer-linea"
+            formControlName="lineaPedidoId"
+            [options]="opcionesLinea()"
+            optionLabel="label"
+            optionValue="id"
+            placeholder="Selecciona una línea del pedido"
+            appendTo="body"
+          ></p-select>
+          @if (
+            form.controls['lineaPedidoId'].invalid &&
+            form.controls['lineaPedidoId'].touched
+          ) {
+            <small class="pre-drawer__error-campo">
+              Línea obligatoria.
+            </small>
+          }
+        </div>
+
+        <div class="pre-drawer__campo">
+          <label for="drawer-recurso">Recurso</label>
+          <p-select
+            inputId="drawer-recurso"
+            formControlName="recursoId"
+            [options]="recursosDisponibles()"
+            optionLabel="nombre"
+            optionValue="id"
+            placeholder="Selecciona un recurso del proveedor"
+            appendTo="body"
+          ></p-select>
+          @if (
+            form.controls['recursoId'].invalid &&
+            form.controls['recursoId'].touched
+          ) {
+            <small class="pre-drawer__error-campo">
+              Recurso obligatorio.
+            </small>
+          }
+          @if (
+            recursosDisponibles().length === 0 &&
+            pedidoIdSeleccionado() !== null
+          ) {
+            <small class="pre-drawer__aviso">
+              El proveedor del pedido no tiene recursos definidos.
+            </small>
+          }
+        </div>
+
+        <div class="pre-drawer__grid">
+          <div class="pre-drawer__campo">
+            <label for="drawer-mes">Mes</label>
+            <p-select
+              inputId="drawer-mes"
+              formControlName="mes"
+              [options]="meses"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Mes"
+              appendTo="body"
+            ></p-select>
+            @if (
+              form.controls['mes'].invalid && form.controls['mes'].touched
+            ) {
+              <small class="pre-drawer__error-campo">
+                Mes obligatorio.
+              </small>
+            }
+          </div>
+          <div class="pre-drawer__campo">
+            <label for="drawer-anio">Año</label>
+            <p-inputNumber
+              inputId="drawer-anio"
+              formControlName="anio"
+              mode="decimal"
+              [useGrouping]="false"
+              [min]="2000"
+              [max]="2100"
+            ></p-inputNumber>
+            @if (
+              form.controls['anio'].invalid && form.controls['anio'].touched
+            ) {
+              <small class="pre-drawer__error-campo">
+                Año entre 2000 y 2100.
+              </small>
+            }
+          </div>
+        </div>
+
+        <div class="pre-drawer__campo">
+          <label for="drawer-horas">Horas consumidas</label>
+          <p-inputNumber
+            inputId="drawer-horas"
+            formControlName="horasConsumidas"
+            mode="decimal"
+            [minFractionDigits]="0"
+            [maxFractionDigits]="2"
+            [min]="0"
+            placeholder="Horas"
+          ></p-inputNumber>
+          @if (horasDisponibles() !== null) {
+            <small
+              class="pre-drawer__hint"
+              [class.pre-drawer__hint--alerta]="excedeDisponibles()"
+            >
+              @if (excedeDisponibles()) {
+                Sobrepasa el límite: quedan
+                {{ horasDisponibles() | number: '1.0-2' }} h disponibles.
+              } @else {
+                Quedan {{ horasDisponibles() | number: '1.0-2' }} h
+                disponibles.
+              }
+            </small>
+          }
+          @if (
+            form.controls['horasConsumidas'].invalid &&
+            form.controls['horasConsumidas'].touched
+          ) {
+            <small class="pre-drawer__error-campo">
+              Horas obligatorias.
+            </small>
+          }
+        </div>
+
+        @if (errorRegistro(); as err) {
+          <div class="pre-drawer__error" role="alert">
+            {{ err }}
+          </div>
+        }
+
+        <footer class="pre-drawer__footer">
+          <p-button
+            type="button"
+            label="Cancelar"
+            severity="secondary"
+            [text]="true"
+            (onClick)="onCerrar()"
+          ></p-button>
+          <p-button
+            type="submit"
+            label="Registrar y nuevo"
+            icon="pi pi-check"
+            [disabled]="form.invalid || enviando()"
+          ></p-button>
+        </footer>
+      </form>
+    </aside>
+  </div>
+}
