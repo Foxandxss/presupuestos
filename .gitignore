@@ -59,3 +59,8 @@ test-output
 
 
 storybook-static
+
+# Playwright
+apps/presupuestos-e2e/.tmp
+apps/presupuestos-e2e/playwright-report
+apps/presupuestos-e2e/test-results

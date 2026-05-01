@@ -1,0 +1,21 @@
+{
+  "name": "presupuestos-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": ["api", "presupuestos"],
+    "targets": {
+      "e2e": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/presupuestos-e2e",
+          "command": "playwright test"
+        }
+      },
+      "lint": {
+        "executor": "@nx/eslint:lint"
+      }
+    },
+    "tags": ["type:e2e"]
+  }
+}

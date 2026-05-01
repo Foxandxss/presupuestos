@@ -574,15 +574,20 @@ export class PedidosPage {
       lineas,
     };
     const id = this.editandoId();
-    const op = id === null ? this.api.create(dto) : this.api.update(id, dto);
+    const esNuevo = id === null;
+    const op = esNuevo ? this.api.create(dto) : this.api.update(id, dto);
     op.subscribe({
-      next: () => {
+      next: (pedido) => {
         this.toast.add({
           severity: 'success',
-          summary: id === null ? 'Pedido creado' : 'Pedido actualizado',
+          summary: esNuevo ? 'Pedido creado' : 'Pedido actualizado',
         });
         this.dialogVisible.set(false);
-        this.cargar();
+        if (esNuevo) {
+          void this.router.navigate(['/pedidos', pedido.id]);
+        } else {
+          this.cargar();
+        }
       },
       error: (err: HttpErrorResponse) => {
         this.toast.add({

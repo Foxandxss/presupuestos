@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { MessageService } from 'primeng/api';
 
 import type { Rol } from './auth.types';
 import { AuthService } from './auth.service';
@@ -33,6 +34,8 @@ export function roleGuard(...roles: Rol[]): CanActivateFn {
     if (!auth.autenticado()) {
       return router.createUrlTree(['/login']);
     }
+    const toast = inject(MessageService, { optional: true });
+    toast?.add({ severity: 'info', summary: 'No hay nada aquí.', life: 4000 });
     return router.createUrlTree(['/inicio']);
   };
 }

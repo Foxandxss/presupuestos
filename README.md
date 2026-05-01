@@ -19,10 +19,10 @@ npm start             # api en :3000, frontend en :4200
 
 El seed crea dos usuarios fijos en `presupuestos.sqlite`:
 
-| Rol         | Email                              | Contraseña     |
-| ----------- | ---------------------------------- | -------------- |
-| `admin`     | `admin@presupuestos.local`         | `admin123`     |
-| `consultor` | `consultor@presupuestos.local`     | `consultor123` |
+| Rol         | Email                | Contraseña     |
+| ----------- | -------------------- | -------------- |
+| `admin`     | `admin@demo.com`     | `admin123`     |
+| `consultor` | `consultor@demo.com` | `consultor123` |
 
 `POST /api/auth/login` devuelve `{ accessToken, usuario }`. El frontend persiste el JWT en `localStorage` y lo añade como `Authorization: Bearer <token>` a cada request a `/api`.
 

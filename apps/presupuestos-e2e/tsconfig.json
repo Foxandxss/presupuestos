@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/apps/presupuestos-e2e",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "types": ["node"],
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts", "playwright.config.ts", "global-setup.ts"]
+}

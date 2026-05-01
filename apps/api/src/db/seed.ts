@@ -27,9 +27,9 @@ db.insert(meta)
 
 // --- Usuarios ----------------------------------------------------------------
 const usuariosSemilla = [
-  { email: 'admin@presupuestos.local', password: 'admin123', rol: 'admin' as const },
+  { email: 'admin@demo.com', password: 'admin123', rol: 'admin' as const },
   {
-    email: 'consultor@presupuestos.local',
+    email: 'consultor@demo.com',
     password: 'consultor123',
     rol: 'consultor' as const,
   },

@@ -35,6 +35,7 @@
     "@nx/storybook": "^22.7.0",
     "@nx/web": "22.7.0",
     "@nx/webpack": "22.7.0",
+    "@playwright/test": "^1.59.1",
     "@primeng/themes": "^21.0.4",
     "@schematics/angular": "~21.2.0",
     "@storybook/addon-a11y": "^10.3.6",

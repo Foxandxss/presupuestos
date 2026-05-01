@@ -6,7 +6,7 @@ export class UsuarioPublicoDto {
   @ApiProperty({ example: 1 })
   id!: number;
 
-  @ApiProperty({ example: 'admin@presupuestos.local' })
+  @ApiProperty({ example: 'admin@demo.com' })
   email!: string;
 
   @ApiProperty({ example: 'admin', enum: ['admin', 'consultor'] })
