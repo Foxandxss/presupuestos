@@ -213,6 +213,9 @@ export const consumosMensuales = sqliteTable(
     recursoId: integer('recurso_id')
       .notNull()
       .references(() => recursos.id, { onDelete: 'restrict' }),
+    usuarioId: integer('usuario_id').references(() => usuarios.id, {
+      onDelete: 'set null',
+    }),
     mes: integer('mes').notNull(),
     anio: integer('anio').notNull(),
     horasConsumidas: real('horas_consumidas').notNull(),

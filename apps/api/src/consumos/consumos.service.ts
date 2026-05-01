@@ -68,7 +68,7 @@ export class ConsumosService {
     return this.adaptar(consumo, linea.pedidoId);
   }
 
-  create(dto: CrearConsumoDto): ConsumoDto {
+  create(dto: CrearConsumoDto, usuarioId?: number): ConsumoDto {
     const linea = this.lineaOrNull(dto.lineaPedidoId);
     if (!linea) {
       throw new BadRequestException(
@@ -112,6 +112,7 @@ export class ConsumosService {
       .values({
         lineaPedidoId: linea.id,
         recursoId: dto.recursoId,
+        usuarioId: usuarioId ?? null,
         mes: dto.mes,
         anio: dto.anio,
         horasConsumidas: dto.horasConsumidas,
@@ -294,6 +295,7 @@ export class ConsumosService {
       lineaPedidoId: consumo.lineaPedidoId,
       pedidoId,
       recursoId: consumo.recursoId,
+      usuarioId: consumo.usuarioId ?? null,
       mes: consumo.mes,
       anio: consumo.anio,
       horasConsumidas: consumo.horasConsumidas,

@@ -1,0 +1,1 @@
+ALTER TABLE `consumos_mensuales` ADD `usuario_id` integer REFERENCES usuarios(id);

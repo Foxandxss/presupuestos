@@ -19,6 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { JwtPayload } from '../auth/jwt-payload';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -50,8 +52,11 @@ export class ConsumosController {
 
   @Post()
   @ApiCreatedResponse({ type: ConsumoDto })
-  create(@Body() dto: CrearConsumoDto): ConsumoDto {
-    return this.service.create(dto);
+  create(
+    @Body() dto: CrearConsumoDto,
+    @CurrentUser() user?: JwtPayload,
+  ): ConsumoDto {
+    return this.service.create(dto, user?.sub);
   }
 
   @Delete(':id')

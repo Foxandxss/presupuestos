@@ -90,6 +90,9 @@ export class ConsumoDto {
   @ApiProperty()
   recursoId!: number;
 
+  @ApiProperty({ nullable: true, type: Number })
+  usuarioId!: number | null;
+
   @ApiProperty()
   mes!: number;
 

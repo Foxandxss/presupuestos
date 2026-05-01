@@ -1,18 +1,135 @@
-<div class="mx-auto max-w-2xl">
-  <h1 class="mb-6 text-3xl font-semibold text-slate-800">Inicio</h1>
+<div class="pre-inicio">
+  <header class="pre-inicio__greeting">
+    <h1 class="pre-inicio__saludo">{{ saludo() }}</h1>
+    <p class="pre-inicio__fecha">{{ fechaHoy() }}</p>
+  </header>
 
-  <p-card header="Estado de la API" subheader="Healthcheck end-to-end">
-    <div class="flex items-center gap-3">
-      @if (health(); as h) {
-        <p-tag severity="success" [value]="h.status" icon="pi pi-check"></p-tag>
-        <span class="text-slate-700">El backend responde en /api/health</span>
-      } @else if (error(); as err) {
-        <p-tag severity="danger" [value]="'error'" icon="pi pi-times"></p-tag>
-        <span class="text-slate-700">{{ err }}</span>
-      } @else {
-        <p-tag severity="warn" [value]="'cargando'" icon="pi pi-spin pi-spinner"></p-tag>
-        <span class="text-slate-700">Comprobando…</span>
-      }
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudo cargar el inicio"
+      [descripcion]="err"
+      (reintentar)="reintentar()"
+    />
+  } @else if (cargando()) {
+    <pre-loading-state [cuenta]="4" />
+  } @else {
+    @if (rol() === 'admin') {
+      <section class="pre-inicio__kpis" aria-label="Indicadores admin">
+        @for (tile of tilesAdmin(); track tile.etiqueta) {
+          <a
+            class="pre-kpi"
+            [routerLink]="tile.href"
+            [attr.aria-label]="tile.etiqueta"
+          >
+            <span class="pre-kpi__icono">
+              <lucide-angular [img]="tile.icono" size="20" />
+            </span>
+            <span class="pre-kpi__etiqueta">{{ tile.etiqueta }}</span>
+            <span class="pre-kpi__valor">{{ tile.valor }}</span>
+            @if (tile.delta) {
+              <span
+                class="pre-kpi__delta"
+                [class.pre-kpi__delta--positivo]="tile.delta.positivo"
+                [class.pre-kpi__delta--negativo]="!tile.delta.positivo"
+              >
+                {{ tile.delta.positivo ? '+' : '−' }}{{ tile.delta.porcentaje }}%
+                vs mes anterior
+              </span>
+            }
+          </a>
+        }
+      </section>
+    } @else if (rol() === 'consultor') {
+      <section class="pre-inicio__kpis" aria-label="Indicadores consultor">
+        @for (tile of tilesConsultor(); track tile.etiqueta) {
+          <a
+            class="pre-kpi"
+            [routerLink]="tile.href"
+            [attr.aria-label]="tile.etiqueta"
+          >
+            <span class="pre-kpi__icono">
+              <lucide-angular [img]="tile.icono" size="20" />
+            </span>
+            <span class="pre-kpi__etiqueta">{{ tile.etiqueta }}</span>
+            <span class="pre-kpi__valor">{{ tile.valor }}</span>
+          </a>
+        }
+      </section>
+    }
+
+    <div class="pre-inicio__columnas">
+      <section class="pre-inicio__col pre-inicio__col--acciones">
+        <header class="pre-inicio__col-header">
+          <h2 class="pre-inicio__col-titulo">Acciones frecuentes</h2>
+        </header>
+        <ul class="pre-acciones">
+          @for (accion of accionesRapidas(); track accion.label) {
+            <li *preIfRol="accion.rolesPermitidos">
+              <button
+                type="button"
+                class="pre-acciones__item"
+                (click)="accion.ejecutar()"
+              >
+                <span class="pre-acciones__icono">
+                  <lucide-angular [img]="accion.icono" size="16" />
+                </span>
+                <span class="pre-acciones__label">{{ accion.label }}</span>
+                @if (accion.badge !== null && accion.badge !== undefined && accion.badge > 0) {
+                  <span class="pre-acciones__badge">{{ accion.badge }}</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="pre-inicio__col pre-inicio__col--actividad">
+        <header class="pre-inicio__col-header">
+          <h2 class="pre-inicio__col-titulo">Actividad reciente</h2>
+        </header>
+        @if (actividad().length === 0) {
+          <p class="pre-actividad__vacio">Sin actividad reciente.</p>
+        } @else {
+          <ul class="pre-actividad">
+            @for (evento of actividad(); track evento.fecha + evento.descripcion) {
+              <li>
+                <button
+                  type="button"
+                  class="pre-actividad__item"
+                  (click)="onClickActividad(evento)"
+                >
+                  <span
+                    class="pre-actividad__punto"
+                    [style.backgroundColor]="colorActividad(evento.tipo)"
+                    [attr.aria-hidden]="true"
+                  ></span>
+                  <span class="pre-actividad__texto">
+                    <span class="pre-actividad__descripcion">
+                      {{ evento.descripcion }}
+                    </span>
+                    <span class="pre-actividad__tiempo">
+                      {{ tiempoRelativo(evento.fecha) }}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+        <a class="pre-actividad__ver-mas" routerLink="/pedidos">
+          Ver todos los pedidos →
+        </a>
+      </section>
     </div>
-  </p-card>
+  }
 </div>
+
+<pre-consumo-drawer
+  [abierto]="drawerAbierto()"
+  [pedidos]="pedidos()"
+  [recursos]="recursos()"
+  [perfiles]="perfiles()"
+  [consumosExistentes]="consumosCache()"
+  (cerrar)="cerrarDrawer()"
+  (registrado)="onConsumoRegistrado($event)"
+/>

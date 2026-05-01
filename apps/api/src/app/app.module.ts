@@ -6,6 +6,7 @@ import { CatalogoModule } from '../catalogo/catalogo.module';
 import { FormateadorErrores } from '../common/error-filter';
 import { ConsumosModule } from '../consumos/consumos.module';
 import { DbModule } from '../db/db.module';
+import { InicioModule } from '../inicio/inicio.module';
 import { PedidosModule } from '../pedidos/pedidos.module';
 import { ProyectosModule } from '../proyectos/proyectos.module';
 import { ReportesModule } from '../reportes/reportes.module';
@@ -22,6 +23,7 @@ import { HealthController } from './health.controller';
     ConsumosModule,
     ReportesModule,
     SearchModule,
+    InicioModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: FormateadorErrores }],
