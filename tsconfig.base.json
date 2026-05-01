@@ -9,6 +9,7 @@
         "libs/operaciones/ui/estados-pedido/index.ts"
       ],
       "@operaciones/ui/iconos": ["libs/operaciones/ui/iconos/index.ts"],
+      "@operaciones/ui/shell": ["libs/operaciones/ui/shell/index.ts"],
       "@operaciones/ui/tokens": ["libs/operaciones/ui/tokens/index.ts"]
     },
     "sourceMap": true,

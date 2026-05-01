@@ -44,30 +44,31 @@ describe('App (shell)', () => {
     return fixture;
   }
 
-  it('no muestra el menubar cuando no hay sesión', async () => {
+  it('no muestra el shell cuando no hay sesión', async () => {
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('p-menubar')).toBeNull();
+    expect(compiled.querySelector('pre-page-shell')).toBeNull();
   });
 
-  it('muestra el menú completo incluyendo Reportes para admin', async () => {
+  it('muestra el shell con grupo Reportes para admin', async () => {
     setupAuth('admin');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('p-menubar')).not.toBeNull();
+    expect(compiled.querySelector('pre-page-shell')).not.toBeNull();
     expect(compiled.textContent).toContain('Catálogo');
+    expect(compiled.textContent).toContain('Operativa');
     expect(compiled.textContent).toContain('Proyectos');
     expect(compiled.textContent).toContain('Pedidos');
     expect(compiled.textContent).toContain('Consumos');
     expect(compiled.textContent).toContain('Reportes');
   });
 
-  it('consultor ve menú operativo pero NO Reportes', async () => {
+  it('consultor ve la operativa pero NO Reportes', async () => {
     setupAuth('consultor');
     const fixture = await render();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Catálogo');
-    expect(compiled.textContent).toContain('Proyectos');
+    expect(compiled.textContent).toContain('Operativa');
     expect(compiled.textContent).toContain('Pedidos');
     expect(compiled.textContent).toContain('Consumos');
     expect(compiled.textContent).not.toContain('Reportes');

@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  isDevMode,
   signal,
 } from '@angular/core';
 import {
@@ -12,13 +13,24 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
+import { LucideAngularModule } from 'lucide-angular';
 import { InputTextModule } from 'primeng/inputtext';
-import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 
+import { ICONOS } from '@operaciones/ui/iconos';
+
 import { AuthService } from './auth.service';
+
+interface CredencialDemo {
+  readonly etiqueta: string;
+  readonly email: string;
+  readonly password: string;
+}
+
+const CREDENCIALES_DEMO: readonly CredencialDemo[] = [
+  { etiqueta: 'Admin', email: 'admin@demo.com', password: 'admin123' },
+  { etiqueta: 'Consultor', email: 'consultor@demo.com', password: 'consultor123' },
+];
 
 @Component({
   selector: 'app-login',
@@ -26,19 +38,22 @@ import { AuthService } from './auth.service';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    ButtonModule,
-    CardModule,
     InputTextModule,
-    MessageModule,
+    LucideAngularModule,
     PasswordModule,
   ],
   templateUrl: './login.page.html',
+  styleUrl: './login.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginPage {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  protected readonly icono = ICONOS;
+  protected readonly esDev = isDevMode();
+  protected readonly demos = CREDENCIALES_DEMO;
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -66,12 +81,18 @@ export class LoginPage {
       },
       error: (err: HttpErrorResponse) => {
         this.enviando.set(false);
-        this.error.set(
-          err.status === 401
-            ? 'Credenciales inválidas.'
-            : 'No se pudo iniciar sesión. Inténtalo de nuevo.',
-        );
+        if (err.status === 401) {
+          this.error.set('Email o contraseña inválidos.');
+        } else if (err.status >= 500 || err.status === 0) {
+          this.error.set('El servidor no responde. Intenta en unos minutos.');
+        } else {
+          this.error.set('No se pudo iniciar sesión. Inténtalo de nuevo.');
+        }
       },
     });
+  }
+
+  rellenarDemo(demo: CredencialDemo): void {
+    this.form.setValue({ email: demo.email, password: demo.password });
   }
 }

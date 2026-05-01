@@ -1,0 +1,161 @@
+<div class="pre-shell" [class.is-colapsado]="colapsado()">
+  <aside
+    class="pre-shell__sidebar"
+    [attr.aria-label]="'Navegación principal'"
+    [attr.data-colapsado]="colapsado() ? 'true' : 'false'"
+  >
+    <div class="pre-shell__sidebar-top">
+      <div class="pre-shell__brand">
+        @if (!colapsado()) {
+          <span class="pre-shell__brand-text">Presupuestos</span>
+        }
+        <button
+          type="button"
+          class="pre-shell__toggle"
+          [attr.aria-label]="colapsado() ? 'Expandir sidebar' : 'Contraer sidebar'"
+          (click)="toggleColapso()"
+        >
+          <lucide-angular
+            [img]="colapsado() ? icono.expandirSidebar : icono.contraerSidebar"
+            size="18"
+          />
+        </button>
+      </div>
+
+      <nav class="pre-shell__nav">
+        <a
+          class="pre-shell__nav-item"
+          [routerLink]="itemInicio.ruta"
+          routerLinkActive="is-active"
+          [attr.aria-label]="itemInicio.label"
+          [attr.title]="colapsado() ? itemInicio.label : null"
+        >
+          <lucide-angular [img]="iconoItem(itemInicio.icono)" size="18" />
+          @if (!colapsado()) {
+            <span>{{ itemInicio.label }}</span>
+          }
+        </a>
+
+        @for (grupo of grupos(); track trackGrupo($index, grupo)) {
+          <div class="pre-shell__group">
+            @if (!colapsado()) {
+              <span class="pre-shell__group-label">{{ grupo.label }}</span>
+            }
+            @for (item of grupo.items; track trackItem($index, item)) {
+              <a
+                class="pre-shell__nav-item"
+                [routerLink]="item.ruta"
+                routerLinkActive="is-active"
+                [attr.aria-label]="item.label"
+                [attr.title]="colapsado() ? item.label : null"
+              >
+                <lucide-angular [img]="iconoItem(item.icono)" size="18" />
+                @if (!colapsado()) {
+                  <span>{{ item.label }}</span>
+                }
+              </a>
+            }
+          </div>
+        }
+      </nav>
+    </div>
+
+    <div class="pre-shell__sidebar-footer">
+      @if (!colapsado()) {
+        <div class="pre-shell__avatar-row">
+          <div class="pre-shell__avatar" aria-hidden="true">{{ iniciales() }}</div>
+          <div class="pre-shell__avatar-text">
+            <div class="pre-shell__avatar-name">{{ nombreMostrado() }}</div>
+            <div class="pre-shell__avatar-email">{{ usuario().email }}</div>
+            <span class="pre-shell__chip" [ngClass]="chipRolClase()">
+              {{ chipRolLabel() }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="pre-shell__avatar-menu"
+            [attr.aria-haspopup]="'menu'"
+            [attr.aria-expanded]="menuAbierto()"
+            aria-label="Acciones de usuario"
+            (click)="toggleMenu($event)"
+          >
+            <lucide-angular [img]="icono.mas" size="16" />
+          </button>
+          @if (menuAbierto()) {
+            <div class="pre-shell__menu" role="menu">
+              <button
+                type="button"
+                class="pre-shell__menu-item"
+                role="menuitem"
+                disabled
+                title="Disponible próximamente"
+              >
+                <lucide-angular [img]="icono.cambiarContrasena" size="16" />
+                <span>Cambiar contraseña</span>
+              </button>
+              <button
+                type="button"
+                class="pre-shell__menu-item"
+                role="menuitem"
+                (click)="emitirLogout()"
+              >
+                <lucide-angular [img]="icono.cerrarSesion" size="16" />
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <button
+          type="button"
+          class="pre-shell__avatar-collapsed"
+          [attr.aria-label]="'Cerrar sesión de ' + usuario().email"
+          [attr.title]="usuario().email"
+          (click)="emitirLogout()"
+        >
+          <span class="pre-shell__avatar pre-shell__avatar--sm" aria-hidden="true">{{ iniciales() }}</span>
+        </button>
+      }
+    </div>
+  </aside>
+
+  <div class="pre-shell__main">
+    <header class="pre-shell__topbar">
+      <nav class="pre-shell__breadcrumbs" aria-label="Breadcrumb">
+        <ol class="pre-shell__crumbs">
+          @for (crumb of breadcrumbs(); track $index; let last = $last) {
+            <li class="pre-shell__crumb">
+              @if (crumb.ruta && !last) {
+                <a [routerLink]="crumb.ruta">{{ crumb.label }}</a>
+              } @else {
+                <span [class.is-current]="last">{{ crumb.label }}</span>
+              }
+              @if (!last) {
+                <lucide-angular [img]="icono.expandir" size="14" class="pre-shell__crumb-sep" />
+              }
+            </li>
+          }
+        </ol>
+      </nav>
+
+      <div class="pre-shell__topbar-actions">
+        <button
+          type="button"
+          class="pre-shell__cmdk"
+          aria-label="Buscar (próximamente)"
+          disabled
+        >
+          <lucide-angular [img]="icono.comando" size="14" />
+          <span>K Buscar</span>
+        </button>
+        <span class="pre-shell__chip pre-shell__chip--topbar" [ngClass]="chipRolClase()">
+          {{ chipRolLabel() }}
+        </span>
+      </div>
+    </header>
+
+    <main class="pre-shell__content">
+      <ng-content />
+    </main>
+  </div>
+</div>

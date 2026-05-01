@@ -1,25 +1,7 @@
-@if (autenticado()) {
-  <p-menubar [model]="menuItems()" styleClass="border-0 rounded-none">
-    <ng-template pTemplate="start">
-      <span class="font-semibold text-slate-800 px-3">Presupuestos</span>
-    </ng-template>
-    <ng-template pTemplate="end">
-      <div class="flex items-center gap-3 pr-3">
-        @if (usuario(); as u) {
-          <span class="text-sm text-slate-600">{{ u.email }} ({{ u.rol }})</span>
-        }
-        <p-button
-          label="Cerrar sesión"
-          icon="pi pi-sign-out"
-          severity="secondary"
-          [text]="true"
-          (onClick)="cerrarSesion()"
-        ></p-button>
-      </div>
-    </ng-template>
-  </p-menubar>
-}
-
-<main class="min-h-screen bg-slate-50 p-8">
+@if (autenticado() && usuarioShell(); as u) {
+  <pre-page-shell [usuario]="u" (logout)="cerrarSesion()">
+    <router-outlet />
+  </pre-page-shell>
+} @else {
   <router-outlet />
-</main>
+}
