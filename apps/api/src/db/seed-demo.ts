@@ -1,5 +1,6 @@
 import { createDatabase } from './connection';
 import { sembrarCatalogo } from './demo/catalogo';
+import { sembrarConsumos } from './demo/consumos';
 import { crearFaker } from './demo/faker';
 import { sembrarPedidos } from './demo/pedidos';
 import { sembrarProyectos } from './demo/proyectos';
@@ -15,6 +16,7 @@ wipeDatos(db);
 sembrarUsuarios(db);
 const catalogo = sembrarCatalogo(db, faker);
 const proyectos = sembrarProyectos(db, faker, catalogo.perfilesIds);
-sembrarPedidos(db, faker, catalogo, proyectos.proyectosIds);
+const pedidos = sembrarPedidos(db, faker, catalogo, proyectos.proyectosIds);
+sembrarConsumos(db, faker, pedidos.recursosPorLinea);
 
 console.log('[db:seed:demo] OK');

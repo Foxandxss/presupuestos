@@ -103,13 +103,16 @@ const COHORTES: ReadonlyArray<Cohorte> = [
   },
 ];
 
-const LINEAS_POR_PEDIDO_MIN = 1;
-const LINEAS_POR_PEDIDO_MAX = 3;
+// Slice 5 sube los rangos respecto al slice 4 (era 1-3 líneas y 1-2 recursos)
+// para que la masa de ConsumosMensuales caiga en el rango 1700-2300 del PRD.
+// Cada línea se garantiza ≥ 2 recursos cuando el proveedor tiene 2 o más
+// (siempre, dado que el catálogo siembra 3-8 recursos/proveedor).
+const LINEAS_POR_PEDIDO_MIN = 3;
+const LINEAS_POR_PEDIDO_MAX = 5;
 const HORAS_OFERTADAS_MIN = 50;
 const HORAS_OFERTADAS_MAX = 500;
 const HORAS_OFERTADAS_PASO = 10;
-const RECURSOS_POR_LINEA_MIN = 1;
-const RECURSOS_POR_LINEA_MAX = 2;
+const RECURSOS_POR_LINEA = 2;
 
 export interface PedidosSembrados {
   pedidosIds: number[];
@@ -171,12 +174,12 @@ export function sembrarPedidos(
         fechaCreacion,
       });
 
-      // 1–2 recursos por línea — la asignación se guarda para slice 5.
+      // 2 recursos por línea (capado a la oferta del proveedor) — la
+      // asignación se guarda para slice 5. Fijar en 2 garantiza que el
+      // repartidor use los dos huecos del UNIQUE(linea, recurso, mes, anio)
+      // en cada mes y la masa de consumos quepa en el rango del PRD.
       for (const lineaId of lineas.lineaIds) {
-        const cuantos = faker.number.int({
-          min: RECURSOS_POR_LINEA_MIN,
-          max: Math.min(RECURSOS_POR_LINEA_MAX, recursosProveedor.length),
-        });
+        const cuantos = Math.min(RECURSOS_POR_LINEA, recursosProveedor.length);
         const seleccion = [
           ...faker.helpers.arrayElements(recursosProveedor, cuantos),
         ].sort((a, b) => a - b);
@@ -254,10 +257,13 @@ function sembrarLineas(
     fechaCreacion: string;
   },
 ): { lineaIds: number[] } {
-  const cuantos = faker.number.int({
-    min: LINEAS_POR_PEDIDO_MIN,
-    max: Math.min(LINEAS_POR_PEDIDO_MAX, args.perfilesDisponibles.length),
-  });
+  const max = Math.min(LINEAS_POR_PEDIDO_MAX, args.perfilesDisponibles.length);
+  // Si el proveedor tiene < LINEAS_POR_PEDIDO_MIN perfiles disponibles,
+  // bajamos el suelo para que faker no se queje. Sucede cuando el corte del
+  // 60% del cross-product en sembrarServicios deja a algún proveedor con
+  // pocos perfiles cubiertos.
+  const min = Math.min(LINEAS_POR_PEDIDO_MIN, max);
+  const cuantos = faker.number.int({ min, max });
   // Sin reemplazo + sort estable: respeta UNIQUE implícito por perfil dentro
   // del pedido (no obligatorio en el schema, pero tiene sentido funcional)
   // y fija el orden de inserción para que los IDs sean reproducibles.
