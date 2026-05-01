@@ -20,11 +20,12 @@ for ((i=1; i<=$1; i++)); do
   issues=$(gh issue list --state open --json number,title,body,comments)
   prompt=$(cat ralph/prompt.md)
 
-  docker sandbox run claude . -- \
-    --verbose \
-    --print \
-    --output-format stream-json \
-    "Previous commits: $commits $issues $prompt" \
+  printf '%s' "Previous commits: $commits $issues $prompt" \
+  | claude \
+      --dangerously-skip-permissions \
+      --verbose \
+      --print \
+      --output-format stream-json \
   | grep --line-buffered '^{' \
   | tee "$tmpfile" \
   | jq --unbuffered -rj "$stream_text"
