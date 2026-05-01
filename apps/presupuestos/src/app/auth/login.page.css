@@ -118,6 +118,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .login-submit__spinner {
+    animation: none;
+  }
+}
+
 .login-help {
   margin: 0;
   text-align: center;

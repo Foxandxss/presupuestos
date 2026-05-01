@@ -1,7 +1,13 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { LucideAngularModule, type LucideIconData } from 'lucide-angular';
 
-import { ICONOS } from '../iconos';
+import { ICONOS, type NombreIcono } from '../iconos';
 
 @Component({
   selector: 'pre-error-state',
@@ -17,13 +23,15 @@ import { ICONOS } from '../iconos';
           <p class="pre-error-state__description">{{ d }}</p>
         }
       </div>
-      <button
-        type="button"
-        class="pre-error-state__retry"
-        (click)="reintentar.emit()"
-      >
-        Reintentar
-      </button>
+      @if (mostrarAccion()) {
+        <button
+          type="button"
+          class="pre-error-state__retry"
+          (click)="reintentar.emit()"
+        >
+          {{ etiquetaAccion() }}
+        </button>
+      }
     </div>
   `,
   styles: [
@@ -84,9 +92,12 @@ import { ICONOS } from '../iconos';
 export class ErrorStateComponent {
   readonly titulo = input<string>('No se pudo cargar');
   readonly descripcion = input<string | null>(null);
+  readonly iconoNombre = input<NombreIcono>('errorCarga');
+  readonly etiquetaAccion = input<string>('Reintentar');
+  readonly mostrarAccion = input<boolean>(true);
   readonly reintentar = output<void>();
 
-  protected icono(): LucideIconData {
-    return ICONOS.errorCarga as LucideIconData;
-  }
+  protected readonly icono = computed<LucideIconData>(
+    () => ICONOS[this.iconoNombre()] as LucideIconData,
+  );
 }

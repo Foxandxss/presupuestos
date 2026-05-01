@@ -7,6 +7,8 @@ import { ProveedoresPage } from './catalogo/proveedores.page';
 import { RecursosPage } from './catalogo/recursos.page';
 import { ServiciosPage } from './catalogo/servicios.page';
 import { ConsumosPage } from './consumos/consumos.page';
+import { PaginaErrorGenericoPage } from './errores/pagina-error-generico.page';
+import { PaginaNoEncontradaPage } from './errores/pagina-no-encontrada.page';
 import { HomePage } from './home/home.page';
 import { PedidoDetailPage } from './pedidos/pedido-detail.page';
 import { PedidosPage } from './pedidos/pedidos.page';
@@ -119,5 +121,14 @@ export const appRoutes: Routes = [
     ],
   },
   { path: '', pathMatch: 'full', redirectTo: 'inicio' },
-  { path: '**', redirectTo: 'inicio' },
+  {
+    path: 'error',
+    component: PaginaErrorGenericoPage,
+    title: 'Algo ha fallado · Presupuestos',
+  },
+  {
+    path: '**',
+    component: PaginaNoEncontradaPage,
+    title: 'Página no encontrada · Presupuestos',
+  },
 ];

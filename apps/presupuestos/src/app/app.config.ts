@@ -1,6 +1,7 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
+  ErrorHandler,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
@@ -14,6 +15,7 @@ import { PresupuestosPreset } from '@operaciones/ui/tokens';
 import { appRoutes } from './app.routes';
 import { accesoDenegadoInterceptor } from './auth/acceso-denegado.interceptor';
 import { authInterceptor } from './auth/auth.interceptor';
+import { GlobalErrorHandler } from './errores/global-error-handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -34,5 +36,6 @@ export const appConfig: ApplicationConfig = {
       },
     }),
     MessageService,
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
   ],
 };
