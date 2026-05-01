@@ -10,6 +10,7 @@ import { ConsumosPage } from './consumos/consumos.page';
 import { HomePage } from './home/home.page';
 import { PedidoDetailPage } from './pedidos/pedido-detail.page';
 import { PedidosPage } from './pedidos/pedidos.page';
+import { ProyectoDetailPage } from './proyectos/proyecto-detail.page';
 import { ProyectosPage } from './proyectos/proyectos.page';
 import { ReporteFacturacionPage } from './reportes/reporte-facturacion.page';
 import { ReporteHorasPage } from './reportes/reporte-horas.page';
@@ -57,9 +58,20 @@ export const appRoutes: Routes = [
   },
   {
     path: 'proyectos',
-    component: ProyectosPage,
     canActivate: [authGuard],
-    title: 'Proyectos · Presupuestos',
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        component: ProyectosPage,
+        title: 'Proyectos · Presupuestos',
+      },
+      {
+        path: ':id',
+        component: ProyectoDetailPage,
+        title: 'Detalle de proyecto · Presupuestos',
+      },
+    ],
   },
   {
     path: 'pedidos',

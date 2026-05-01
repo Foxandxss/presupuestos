@@ -222,9 +222,7 @@ export class ProyectosPage {
   }
 
   protected onRowClick(row: Proyecto): void {
-    // Placeholder: la detail page /proyectos/:id llega en #30. Mientras,
-    // abrir el modal de edición existente.
-    this.abrirEditar(row);
+    void this.router.navigate(['/proyectos', row.id]);
   }
 
   private actualizarParam(clave: string, valor: string | null): void {

@@ -34,3 +34,15 @@ export class EstimacionPerfilDto {
   @ApiProperty()
   updatedAt!: string;
 }
+
+export class EstimacionPerfilConDerivadosDto extends EstimacionPerfilDto {
+  @ApiProperty({
+    description: 'Suma de horasOfertadas en líneas del proyecto para este perfil',
+  })
+  horasOfertadas!: number;
+
+  @ApiProperty({
+    description: 'Suma de horasConsumidas registradas sobre esas líneas',
+  })
+  horasConsumidas!: number;
+}

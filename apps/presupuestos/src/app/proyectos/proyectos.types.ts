@@ -7,6 +7,11 @@ export interface EstimacionPerfil {
   updatedAt: string;
 }
 
+export interface EstimacionPerfilConDerivados extends EstimacionPerfil {
+  horasOfertadas: number;
+  horasConsumidas: number;
+}
+
 export interface Proyecto {
   id: number;
   nombre: string;

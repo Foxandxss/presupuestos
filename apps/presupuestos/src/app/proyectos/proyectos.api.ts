@@ -1,8 +1,14 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import type { CrearProyecto, Proyecto } from './proyectos.types';
+import type {
+  CrearEstimacion,
+  EstimacionPerfil,
+  EstimacionPerfilConDerivados,
+  Proyecto,
+  CrearProyecto,
+} from './proyectos.types';
 
 @Injectable({ providedIn: 'root' })
 export class ProyectosApi {
@@ -27,5 +33,45 @@ export class ProyectosApi {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  listEstimaciones(
+    proyectoId: number,
+  ): Observable<EstimacionPerfilConDerivados[]> {
+    const params = new HttpParams().set('conDerivados', 'true');
+    return this.http.get<EstimacionPerfilConDerivados[]>(
+      `${this.base}/${proyectoId}/estimaciones`,
+      { params },
+    );
+  }
+
+  addEstimacion(
+    proyectoId: number,
+    dto: CrearEstimacion,
+  ): Observable<EstimacionPerfil> {
+    return this.http.post<EstimacionPerfil>(
+      `${this.base}/${proyectoId}/estimaciones`,
+      dto,
+    );
+  }
+
+  updateEstimacion(
+    proyectoId: number,
+    estimacionId: number,
+    dto: Partial<CrearEstimacion>,
+  ): Observable<EstimacionPerfil> {
+    return this.http.patch<EstimacionPerfil>(
+      `${this.base}/${proyectoId}/estimaciones/${estimacionId}`,
+      dto,
+    );
+  }
+
+  deleteEstimacion(
+    proyectoId: number,
+    estimacionId: number,
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${this.base}/${proyectoId}/estimaciones/${estimacionId}`,
+    );
   }
 }

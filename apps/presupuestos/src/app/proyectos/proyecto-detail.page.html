@@ -1,0 +1,390 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+@if (noEncontrado()) {
+  <div class="pre-detail__no-encontrado">
+    <pre-error-state
+      titulo="Proyecto no encontrado"
+      descripcion="El proyecto al que intentas acceder no existe o fue eliminado."
+      (reintentar)="volverALista()"
+    />
+    <p-button
+      label="Volver a Proyectos"
+      icon="pi pi-arrow-left"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="volverALista()"
+    ></p-button>
+  </div>
+} @else if (errorCarga(); as err) {
+  <div class="pre-detail__error">
+    <pre-error-state
+      titulo="No se pudo cargar el proyecto"
+      [descripcion]="err"
+      (reintentar)="reintentar()"
+    />
+  </div>
+} @else if (cargando() || proyecto() === null) {
+  <pre-loading-state [cuenta]="6" />
+} @else if (proyecto(); as p) {
+  <div class="pre-detail">
+    <header class="pre-detail__header">
+      <a routerLink="/proyectos" class="pre-detail__breadcrumb">
+        <span aria-hidden="true">«</span> Proyectos
+      </a>
+      <div class="pre-detail__titulo-fila">
+        <div class="pre-detail__titulo-bloque">
+          <h1 class="pre-detail__titulo">{{ p.nombre }}</h1>
+          <p class="pre-detail__subtitulo">{{ subtituloProyecto() }}</p>
+        </div>
+        <div class="pre-detail__acciones">
+          <p-button
+            *preIfRol="Rol.Admin"
+            label="Editar"
+            icon="pi pi-pencil"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="abrirEditarCabecera()"
+          ></p-button>
+          <p-button
+            *preIfRol="Rol.Admin"
+            label="Eliminar"
+            icon="pi pi-trash"
+            severity="danger"
+            [outlined]="true"
+            (onClick)="eliminarProyecto()"
+          ></p-button>
+        </div>
+      </div>
+    </header>
+
+    <section class="pre-detail__kpis">
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Estimadas</span>
+        <span class="pre-kpi__valor">
+          {{ horasEstimadas() | number: '1.0-2' }} h
+        </span>
+      </div>
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Ofertadas</span>
+        <span class="pre-kpi__valor">
+          {{ horasOfertadas() | number: '1.0-2' }} h
+        </span>
+        @if (porcentajeOfertadasSobreEstimadas(); as pct) {
+          <span class="pre-kpi__delta">{{ pct }}% sobre estimadas</span>
+        }
+      </div>
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Consumidas</span>
+        <span class="pre-kpi__valor">
+          {{ horasConsumidas() | number: '1.0-2' }} h
+        </span>
+        @if (porcentajeConsumidasSobreOfertadas(); as pct) {
+          <span class="pre-kpi__delta">{{ pct }}% sobre ofertadas</span>
+        }
+      </div>
+      <div class="pre-kpi">
+        <span class="pre-kpi__etiqueta">Pendientes</span>
+        <span class="pre-kpi__valor">
+          {{ horasPendientes() | number: '1.0-2' }} h
+        </span>
+        @if (porcentajePendientesSobreOfertadas(); as pct) {
+          <span class="pre-kpi__delta">{{ pct }}% sobre ofertadas</span>
+        }
+      </div>
+    </section>
+
+    <section class="pre-detail__seccion">
+      <h2 class="pre-detail__seccion-titulo">Datos del proyecto</h2>
+      <dl class="pre-detail__datos">
+        <div class="pre-detail__dato pre-detail__dato--ancho">
+          <dt>Descripción</dt>
+          <dd>{{ p.descripcion ?? '—' }}</dd>
+        </div>
+        <div class="pre-detail__dato">
+          <dt>Fecha de inicio</dt>
+          <dd>{{ formatoFechaCorta(p.fechaInicio) ?? '—' }}</dd>
+        </div>
+        <div class="pre-detail__dato">
+          <dt>Fecha de fin</dt>
+          <dd>{{ formatoFechaCorta(p.fechaFin) ?? '—' }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="pre-detail__seccion">
+      <div class="pre-detail__seccion-cabecera">
+        <h2 class="pre-detail__seccion-titulo">
+          Estimaciones por perfil ({{ filasEstimaciones().length }})
+        </h2>
+        <p-button
+          *preIfRol="Rol.Admin"
+          label="Añadir perfil"
+          icon="pi pi-plus"
+          size="small"
+          severity="secondary"
+          [outlined]="true"
+          [disabled]="perfilesDisponiblesParaNueva().length === 0"
+          (onClick)="anadirFilaPerfil()"
+        ></p-button>
+      </div>
+      @if (filasEstimaciones().length === 0) {
+        <p class="pre-detail__vacio">
+          Sin estimaciones todavía. Añade un perfil para empezar.
+        </p>
+      } @else {
+        <p-table
+          [value]="filasEstimaciones()"
+          dataKey="filaId"
+          styleClass="pre-detail__tabla"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Perfil</th>
+              <th style="width: 9rem">Estimadas</th>
+              <th style="width: 9rem">Ofertadas</th>
+              <th style="width: 11rem">Consumidas</th>
+              <th *preIfRol="Rol.Admin" style="width: 10rem">Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-fila>
+            <tr>
+              @if (filaEditandoId() === fila.filaId) {
+                <td>
+                  <p-select
+                    [options]="
+                      fila.estimacionId === null
+                        ? perfilesDisponiblesParaNueva()
+                        : perfiles()
+                    "
+                    optionLabel="nombre"
+                    optionValue="id"
+                    [ngModel]="fila.perfilTecnicoId"
+                    (ngModelChange)="
+                      onPerfilFilaChange(fila.filaId, $any($event))
+                    "
+                    placeholder="Selecciona perfil"
+                    appendTo="body"
+                    [disabled]="fila.estimacionId !== null"
+                    ariaLabel="Perfil"
+                  ></p-select>
+                </td>
+                <td>
+                  <p-inputNumber
+                    [ngModel]="fila.horasEstimadas"
+                    (ngModelChange)="
+                      onHorasFilaChange(fila.filaId, $any($event))
+                    "
+                    mode="decimal"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [min]="0"
+                    placeholder="Horas"
+                    ariaLabel="Horas estimadas"
+                  ></p-inputNumber>
+                </td>
+              } @else {
+                <td>{{ nombrePerfil(fila.perfilTecnicoId) }}</td>
+                <td>{{ fila.horasEstimadas | number: '1.0-2' }} h</td>
+              }
+              <td class="pre-detail__col-derivada">
+                {{ fila.horasOfertadas | number: '1.0-2' }} h
+              </td>
+              <td>
+                <div class="pre-detail__progreso">
+                  <div
+                    class="pre-detail__progreso-barra"
+                    [style.width.%]="
+                      porcentajeBarra(fila.horasConsumidas, fila.horasOfertadas)
+                    "
+                  ></div>
+                  <span class="pre-detail__progreso-texto">
+                    {{ fila.horasConsumidas | number: '1.0-2' }} /
+                    {{ fila.horasOfertadas | number: '1.0-2' }} h
+                  </span>
+                </div>
+              </td>
+              <td *preIfRol="Rol.Admin">
+                <div class="pre-detail__acciones-fila">
+                  @if (filaEditandoId() === fila.filaId) {
+                    <p-button
+                      icon="pi pi-check"
+                      size="small"
+                      severity="success"
+                      [text]="true"
+                      ariaLabel="Guardar"
+                      (onClick)="guardarFila(fila.filaId)"
+                    ></p-button>
+                    <p-button
+                      icon="pi pi-times"
+                      size="small"
+                      severity="secondary"
+                      [text]="true"
+                      ariaLabel="Cancelar"
+                      (onClick)="cancelarEdicion(fila.filaId)"
+                    ></p-button>
+                  } @else {
+                    <p-button
+                      icon="pi pi-pencil"
+                      size="small"
+                      severity="secondary"
+                      [text]="true"
+                      ariaLabel="Editar"
+                      (onClick)="editarFila(fila.filaId)"
+                    ></p-button>
+                    <p-button
+                      icon="pi pi-trash"
+                      size="small"
+                      severity="danger"
+                      [text]="true"
+                      ariaLabel="Eliminar"
+                      (onClick)="eliminarFila(fila.filaId)"
+                    ></p-button>
+                  }
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </section>
+
+    <section class="pre-detail__seccion">
+      <div class="pre-detail__seccion-cabecera">
+        <h2 class="pre-detail__seccion-titulo">
+          Pedidos del proyecto ({{ pedidos().length }})
+        </h2>
+        <p-button
+          *preIfRol="Rol.Admin"
+          label="Crear pedido"
+          icon="pi pi-plus"
+          size="small"
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="crearPedidoEnEsteProyecto()"
+        ></p-button>
+      </div>
+      @if (pedidos().length === 0) {
+        <p class="pre-detail__vacio">
+          Este proyecto todavía no tiene pedidos.
+        </p>
+      } @else {
+        <p-table
+          [value]="pedidos()"
+          dataKey="id"
+          styleClass="pre-detail__tabla"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 5rem">ID</th>
+              <th style="width: 9rem">Estado</th>
+              <th>Líneas</th>
+              <th style="width: 11rem">Solicitado</th>
+              <th style="width: 11rem">Aprobado</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr
+              class="pre-detail__fila-clickable"
+              (click)="onPedidoRowClick(row)"
+              tabindex="0"
+              (keydown.enter)="onPedidoRowClick(row)"
+            >
+              <td>#{{ row.id }}</td>
+              <td>
+                <pre-status-badge [estado]="row.estado" size="sm" />
+              </td>
+              <td>{{ row.lineas.length }} líneas</td>
+              <td>{{ formatoFechaCorta(row.fechaSolicitud) ?? '—' }}</td>
+              <td>{{ formatoFechaCorta(row.fechaAprobacion) ?? '—' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </section>
+  </div>
+
+  <p-dialog
+    [visible]="dialogVisible()"
+    (visibleChange)="dialogVisible.set($event)"
+    header="Editar proyecto"
+    [modal]="true"
+    [style]="{ width: '36rem' }"
+    [closeOnEscape]="true"
+  >
+    <form
+      [formGroup]="form"
+      (ngSubmit)="guardarCabecera()"
+      class="flex flex-col gap-4"
+    >
+      <div class="flex flex-col gap-1">
+        <label for="proyecto-detail-nombre" class="text-sm text-slate-700"
+          >Nombre</label
+        >
+        <input
+          pInputText
+          id="proyecto-detail-nombre"
+          type="text"
+          formControlName="nombre"
+          autocomplete="off"
+        />
+        @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
+          <small class="text-red-600"
+            >Nombre obligatorio (mínimo 2 caracteres).</small
+          >
+        }
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="proyecto-detail-descripcion" class="text-sm text-slate-700"
+          >Descripción</label
+        >
+        <textarea
+          pTextarea
+          id="proyecto-detail-descripcion"
+          formControlName="descripcion"
+          rows="2"
+        ></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1">
+          <label for="proyecto-detail-inicio" class="text-sm text-slate-700"
+            >Fecha de inicio</label
+          >
+          <p-datePicker
+            inputId="proyecto-detail-inicio"
+            formControlName="fechaInicio"
+            dateFormat="yy-mm-dd"
+            appendTo="body"
+          ></p-datePicker>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="proyecto-detail-fin" class="text-sm text-slate-700"
+            >Fecha de fin (opcional)</label
+          >
+          <p-datePicker
+            inputId="proyecto-detail-fin"
+            formControlName="fechaFin"
+            dateFormat="yy-mm-dd"
+            [showButtonBar]="true"
+            appendTo="body"
+          ></p-datePicker>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <p-button
+          type="button"
+          label="Cancelar"
+          severity="secondary"
+          [text]="true"
+          (onClick)="cerrarDialog()"
+        ></p-button>
+        <p-button
+          type="submit"
+          label="Guardar"
+          icon="pi pi-check"
+          [disabled]="form.invalid"
+        ></p-button>
+      </div>
+    </form>
+  </p-dialog>
+}

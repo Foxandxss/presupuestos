@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,6 +17,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 
@@ -25,6 +27,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import {
   ActualizarEstimacionDto,
   CrearEstimacionDto,
+  EstimacionPerfilConDerivadosDto,
   EstimacionPerfilDto,
 } from './dto/estimacion.dto';
 import {
@@ -80,9 +83,14 @@ export class ProyectosController {
 
   @Get(':id/estimaciones')
   @ApiOkResponse({ type: [EstimacionPerfilDto] })
+  @ApiQuery({ name: 'conDerivados', required: false, type: Boolean })
   listEstimaciones(
     @Param('id', ParseIntPipe) id: number,
-  ): EstimacionPerfilDto[] {
+    @Query('conDerivados') conDerivados?: string,
+  ): EstimacionPerfilDto[] | EstimacionPerfilConDerivadosDto[] {
+    if (conDerivados === 'true') {
+      return this.service.listEstimacionesConDerivados(id);
+    }
     return this.service.listEstimaciones(id);
   }
 

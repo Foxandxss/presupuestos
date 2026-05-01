@@ -7,10 +7,15 @@ import {
 } from '@nestjs/common';
 import { eq, inArray, sql } from 'drizzle-orm';
 
+import { DomainError } from '@operaciones/dominio';
+
 import type { Database } from '../db/db.module';
 import { DATABASE } from '../db/db.module';
 import {
+  consumosMensuales,
   estimacionesPerfil,
+  lineasPedido,
+  pedidos,
   perfilesTecnicos,
   proyectos,
   type EstimacionPerfil,
@@ -19,6 +24,7 @@ import {
 import {
   ActualizarEstimacionDto,
   CrearEstimacionDto,
+  EstimacionPerfilConDerivadosDto,
 } from './dto/estimacion.dto';
 import {
   ActualizarProyectoDto,
@@ -158,12 +164,82 @@ export class ProyectosService {
 
   delete(id: number): void {
     this.requireProyecto(id);
+    const cuenta = this.contarPedidos(id);
+    if (cuenta > 0) {
+      throw new DomainError(
+        'proyecto_con_pedidos',
+        `No se puede eliminar: el proyecto tiene ${cuenta} ${cuenta === 1 ? 'pedido asociado' : 'pedidos asociados'}.`,
+        { pedidosCount: cuenta },
+      );
+    }
     this.db.delete(proyectos).where(eq(proyectos.id, id)).run();
   }
 
   listEstimaciones(proyectoId: number): EstimacionPerfil[] {
     this.requireProyecto(proyectoId);
     return this.estimacionesDe(proyectoId);
+  }
+
+  listEstimacionesConDerivados(
+    proyectoId: number,
+  ): EstimacionPerfilConDerivadosDto[] {
+    this.requireProyecto(proyectoId);
+    const estimaciones = this.estimacionesDe(proyectoId);
+
+    const lineasFilas = this.db
+      .select({
+        perfilTecnicoId: lineasPedido.perfilTecnicoId,
+        horasOfertadas: lineasPedido.horasOfertadas,
+        lineaId: lineasPedido.id,
+      })
+      .from(lineasPedido)
+      .innerJoin(pedidos, eq(lineasPedido.pedidoId, pedidos.id))
+      .where(eq(pedidos.proyectoId, proyectoId))
+      .all();
+
+    const ofertadasPorPerfil = new Map<number, number>();
+    const consumidasPorPerfil = new Map<number, number>();
+    const perfilPorLinea = new Map<number, number>();
+    for (const fila of lineasFilas) {
+      perfilPorLinea.set(fila.lineaId, fila.perfilTecnicoId);
+      ofertadasPorPerfil.set(
+        fila.perfilTecnicoId,
+        (ofertadasPorPerfil.get(fila.perfilTecnicoId) ?? 0) +
+          fila.horasOfertadas,
+      );
+    }
+
+    if (perfilPorLinea.size > 0) {
+      const consumosFilas = this.db
+        .select({
+          lineaPedidoId: consumosMensuales.lineaPedidoId,
+          horasConsumidas: consumosMensuales.horasConsumidas,
+        })
+        .from(consumosMensuales)
+        .where(
+          inArray(
+            consumosMensuales.lineaPedidoId,
+            Array.from(perfilPorLinea.keys()),
+          ),
+        )
+        .all();
+      for (const c of consumosFilas) {
+        const perfil = perfilPorLinea.get(c.lineaPedidoId);
+        if (perfil === undefined) continue;
+        consumidasPorPerfil.set(
+          perfil,
+          (consumidasPorPerfil.get(perfil) ?? 0) + c.horasConsumidas,
+        );
+      }
+    }
+
+    return estimaciones.map((e) => ({
+      ...e,
+      horasOfertadas: redondear(ofertadasPorPerfil.get(e.perfilTecnicoId) ?? 0),
+      horasConsumidas: redondear(
+        consumidasPorPerfil.get(e.perfilTecnicoId) ?? 0,
+      ),
+    }));
   }
 
   addEstimacion(
@@ -338,6 +414,15 @@ export class ProyectosService {
     }
   }
 
+  private contarPedidos(proyectoId: number): number {
+    const filas = this.db
+      .select({ id: pedidos.id })
+      .from(pedidos)
+      .where(eq(pedidos.proyectoId, proyectoId))
+      .all();
+    return filas.length;
+  }
+
   private adaptar(p: ProyectoRow, estimaciones: EstimacionPerfil[]): ProyectoDto {
     return {
       id: p.id,
@@ -350,4 +435,8 @@ export class ProyectosService {
       updatedAt: p.updatedAt,
     };
   }
+}
+
+function redondear(n: number): number {
+  return Math.round(n * 100) / 100;
 }
