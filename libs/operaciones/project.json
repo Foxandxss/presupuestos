@@ -3,5 +3,38 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "libs/operaciones",
-  "tags": ["type:lib"]
+  "tags": ["type:lib"],
+  "targets": {
+    "storybook": {
+      "executor": "@storybook/angular:start-storybook",
+      "options": {
+        "configDir": "libs/operaciones/.storybook",
+        "tsConfig": "libs/operaciones/.storybook/tsconfig.json",
+        "compodoc": false,
+        "port": 4400,
+        "styles": [
+          "node_modules/@fontsource-variable/inter/index.css",
+          "node_modules/primeicons/primeicons.css",
+          "libs/operaciones/ui/tokens/tokens.css",
+          "libs/operaciones/.storybook/storybook.css"
+        ]
+      }
+    },
+    "build-storybook": {
+      "executor": "@storybook/angular:build-storybook",
+      "outputs": ["{options.outputDir}"],
+      "options": {
+        "configDir": "libs/operaciones/.storybook",
+        "tsConfig": "libs/operaciones/.storybook/tsconfig.json",
+        "compodoc": false,
+        "outputDir": "libs/operaciones/storybook-static",
+        "styles": [
+          "node_modules/@fontsource-variable/inter/index.css",
+          "node_modules/primeicons/primeicons.css",
+          "libs/operaciones/ui/tokens/tokens.css",
+          "libs/operaciones/.storybook/storybook.css"
+        ]
+      }
+    }
+  }
 }

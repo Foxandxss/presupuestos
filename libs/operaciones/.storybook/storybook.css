@@ -1,0 +1,62 @@
+/*
+ * Estilos auxiliares de Storybook.
+ *
+ * tokens.css ya define :root light + .app-dark; aqui solo aplicamos el
+ * surface-app al body de Storybook y damos un padding decente al canvas.
+ */
+
+html,
+body {
+  background-color: var(--surface-app);
+  color: var(--text-default);
+  font-family: var(--font-sans);
+}
+
+#storybook-root {
+  padding: 24px;
+}
+
+.sb-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.sb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.sb-grid-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 720px;
+}
+
+.sb-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.sb-card {
+  padding: 24px;
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 720px;
+}
+
+.sb-fixed-width {
+  width: 480px;
+  max-width: 100%;
+}
