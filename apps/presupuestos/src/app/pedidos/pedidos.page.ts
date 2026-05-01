@@ -4,34 +4,49 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
+import { Rol } from '@operaciones/dominio';
 import {
   etiquetaEstadoPedido,
   StatusBadgeComponent,
   StatusTimelineComponent,
 } from '@operaciones/ui/estados-pedido';
+import {
+  type DensidadLista,
+  EmptyStateComponent,
+  ErrorStateComponent,
+  ListPageComponent,
+  ListToolbarComponent,
+  LoadingStateComponent,
+} from '@operaciones/ui/listado';
+import { PageHeaderComponent } from '@operaciones/ui/shell';
 
-import { AuthService } from '../auth/auth.service';
+import { PreIfRolDirective } from '../auth/pre-if-rol.directive';
 import {
   PerfilesTecnicosApi,
   ProveedoresApi,
@@ -110,11 +125,39 @@ const ESTADOS_EDITABLES: ReadonlySet<EstadoPedido> = new Set([
   'Solicitado',
 ]);
 
+const ESTADOS_OPCIONES: { label: string; value: EstadoPedido }[] = (
+  [
+    'Borrador',
+    'Solicitado',
+    'Aprobado',
+    'EnEjecucion',
+    'Consumido',
+    'Rechazado',
+    'Cancelado',
+  ] as const
+).map((e) => ({ label: etiquetaEstadoPedido(e), value: e }));
+
+const STORAGE_KEY_DENSIDAD = 'presupuestos.lista.densidad.pedidos';
+const STORAGE_KEY_FILAS = 'presupuestos.lista.filas.pedidos';
+
+function leerDensidadInicial(): DensidadLista {
+  if (typeof localStorage === 'undefined') return 'estandar';
+  const raw = localStorage.getItem(STORAGE_KEY_DENSIDAD);
+  return raw === 'compacta' ? 'compacta' : 'estandar';
+}
+
+function leerFilasInicial(): number {
+  if (typeof localStorage === 'undefined') return 10;
+  const raw = Number(localStorage.getItem(STORAGE_KEY_FILAS));
+  return [10, 25, 50].includes(raw) ? raw : 10;
+}
+
 @Component({
   selector: 'app-pedidos',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TableModule,
     DialogModule,
@@ -122,13 +165,22 @@ const ESTADOS_EDITABLES: ReadonlySet<EstadoPedido> = new Set([
     InputNumberModule,
     DatePickerModule,
     SelectModule,
+    MultiSelectModule,
     ToastModule,
     ConfirmDialogModule,
     StatusBadgeComponent,
     StatusTimelineComponent,
+    ListPageComponent,
+    ListToolbarComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    LoadingStateComponent,
+    PageHeaderComponent,
+    PreIfRolDirective,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './pedidos.page.html',
+  styleUrl: './pedidos.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PedidosPage {
@@ -138,21 +190,63 @@ export class PedidosPage {
   private readonly perfilesApi = inject(PerfilesTecnicosApi);
   private readonly serviciosApi = inject(ServiciosApi);
   private readonly fb = inject(FormBuilder);
-  private readonly auth = inject(AuthService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  protected readonly esAdmin = computed(() => this.auth.rol() === 'admin');
+  protected readonly Rol = Rol;
   protected readonly pedidos = signal<Pedido[]>([]);
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly proveedores = signal<Proveedor[]>([]);
   protected readonly perfiles = signal<PerfilTecnico[]>([]);
   protected readonly servicios = signal<Servicio[]>([]);
   protected readonly cargando = signal(false);
+  protected readonly errorCarga = signal<string | null>(null);
   protected readonly dialogVisible = signal(false);
   protected readonly editandoId = signal<number | null>(null);
   protected readonly estadoActual = signal<EstadoPedido>('Borrador');
   protected readonly pedidoActual = signal<Pedido | null>(null);
+
+  protected readonly estadosOpciones = ESTADOS_OPCIONES;
+
+  protected readonly densidad = signal<DensidadLista>(leerDensidadInicial());
+  protected readonly filasPorPagina = signal<number>(leerFilasInicial());
+
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+
+  protected readonly q = computed(() => this.queryParams().get('q') ?? '');
+  protected readonly estadosFiltro = computed<EstadoPedido[]>(() => {
+    const raw = this.queryParams().get('estado');
+    if (!raw) return [];
+    const todos = new Set<EstadoPedido>(
+      ESTADOS_OPCIONES.map((o) => o.value),
+    );
+    return raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s): s is EstadoPedido => todos.has(s as EstadoPedido));
+  });
+  protected readonly proveedorFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('proveedor');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) ? n : null;
+  });
+  protected readonly proyectoFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('proyecto');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) ? n : null;
+  });
+
+  protected readonly hayFiltrosActivos = computed(
+    () =>
+      this.q().length > 0 ||
+      this.estadosFiltro().length > 0 ||
+      this.proveedorFiltro() !== null ||
+      this.proyectoFiltro() !== null,
+  );
 
   protected readonly proyectosPorId = computed(() => {
     const map = new Map<number, string>();
@@ -170,6 +264,41 @@ export class PedidosPage {
     return map;
   });
 
+  protected readonly pedidosFiltrados = computed(() => {
+    const lista = this.pedidos();
+    const query = this.q().trim().toLowerCase();
+    const estados = this.estadosFiltro();
+    const proveedorId = this.proveedorFiltro();
+    const proyectoId = this.proyectoFiltro();
+    const proyMap = this.proyectosPorId();
+    const provMap = this.proveedoresPorId();
+
+    return lista.filter((p) => {
+      if (estados.length > 0 && !estados.includes(p.estado)) return false;
+      if (proveedorId !== null && p.proveedorId !== proveedorId) return false;
+      if (proyectoId !== null && p.proyectoId !== proyectoId) return false;
+      if (query.length > 0) {
+        const idMatch = String(p.id).includes(query.replace(/^#/, ''));
+        const proyMatch = (proyMap.get(p.proyectoId) ?? '')
+          .toLowerCase()
+          .includes(query);
+        const provMatch = (provMap.get(p.proveedorId) ?? '')
+          .toLowerCase()
+          .includes(query);
+        if (!idMatch && !proyMatch && !provMatch) return false;
+      }
+      return true;
+    });
+  });
+
+  protected readonly resumen = computed(() => {
+    const total = this.pedidos().length;
+    const visibles = this.pedidosFiltrados().length;
+    if (total === 0) return null;
+    if (!this.hayFiltrosActivos()) return null;
+    return `Mostrando ${visibles} de ${total}`;
+  });
+
   protected readonly form: FormGroup = this.fb.group({
     proyectoId: [null as number | null, [Validators.required]],
     proveedorId: [null as number | null, [Validators.required]],
@@ -179,8 +308,19 @@ export class PedidosPage {
   constructor() {
     this.cargar();
     this.form.get('proveedorId')?.valueChanges.subscribe(() => {
-      // Al cambiar de proveedor, las tarifas prerellenadas pueden ser otras.
       this.reaplicarTarifas();
+    });
+    effect(() => {
+      const d = this.densidad();
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_DENSIDAD, d);
+      }
+    });
+    effect(() => {
+      const f = this.filasPorPagina();
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_FILAS, String(f));
+      }
     });
   }
 
@@ -219,8 +359,58 @@ export class PedidosPage {
     );
   }
 
+  protected onQueryChange(valor: string): void {
+    this.actualizarParam('q', valor.trim() || null);
+  }
+
+  protected onEstadosChange(valores: EstadoPedido[] | null): void {
+    const v = valores ?? [];
+    this.actualizarParam('estado', v.length > 0 ? v.join(',') : null);
+  }
+
+  protected onProveedorChange(valor: number | null): void {
+    this.actualizarParam('proveedor', valor ? String(valor) : null);
+  }
+
+  protected onProyectoChange(valor: number | null): void {
+    this.actualizarParam('proyecto', valor ? String(valor) : null);
+  }
+
+  protected limpiarFiltros(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'replace',
+    });
+  }
+
+  protected onDensidadChange(d: DensidadLista): void {
+    this.densidad.set(d);
+  }
+
+  protected onFilasChange(filas: number): void {
+    this.filasPorPagina.set(filas);
+  }
+
+  protected reintentarCarga(): void {
+    this.cargar();
+  }
+
+  protected onRowClick(row: Pedido): void {
+    this.abrirEditar(row);
+  }
+
+  private actualizarParam(clave: string, valor: string | null): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [clave]: valor },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   private cargar(): void {
     this.cargando.set(true);
+    this.errorCarga.set(null);
     forkJoin({
       pedidos: this.api.list(),
       proyectos: this.proyectosApi.list(),
@@ -238,11 +428,7 @@ export class PedidosPage {
       },
       error: (err: HttpErrorResponse) => {
         this.cargando.set(false);
-        this.toast.add({
-          severity: 'error',
-          summary: 'Error al cargar',
-          detail: err.message,
-        });
+        this.errorCarga.set(extraerMensaje(err));
       },
     });
   }

@@ -1,66 +1,152 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="mx-auto max-w-7xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Pedidos</h1>
-    @if (esAdmin()) {
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Pedidos"
+    descripcion="Gestiona los pedidos a proveedores y su ciclo de vida."
+  >
+    <div slot="actions">
       <p-button
+        *preIfRol="Rol.Admin"
         label="Nuevo pedido"
         icon="pi pi-plus"
         (onClick)="abrirCrear()"
       ></p-button>
-    }
-  </div>
+    </div>
+  </pre-page-header>
 
-  <p-table
-    [value]="pedidos()"
-    [paginator]="true"
-    [rows]="10"
-    [rowsPerPageOptions]="[10, 25, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    dataKey="id"
-    [tableStyle]="{ 'min-width': '70rem' }"
+  <pre-list-toolbar
+    slot="toolbar"
+    [query]="q()"
+    placeholder="Buscar por #ID, proyecto o proveedor..."
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (queryChange)="onQueryChange($event)"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
   >
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="id" style="width: 5rem">
-          ID <p-sortIcon field="id"></p-sortIcon>
-        </th>
-        <th>Proyecto</th>
-        <th>Proveedor</th>
-        <th pSortableColumn="estado" style="width: 9rem">
-          Estado <p-sortIcon field="estado"></p-sortIcon>
-        </th>
-        <th style="width: 6rem">Líneas</th>
-        <th style="width: 9rem">Total estimado</th>
-        @if (esAdmin()) {
-          <th style="width: 16rem">Acciones</th>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>{{ row.id }}</td>
-        <td>{{ nombreProyecto(row.proyectoId) }}</td>
-        <td>{{ nombreProveedor(row.proveedorId) }}</td>
-        <td>
-          <pre-status-badge [estado]="row.estado" size="md" />
-        </td>
-        <td>{{ row.lineas.length }}</td>
-        <td>{{ totalPresupuesto(row) | number: '1.2-2' }} €</td>
-        @if (esAdmin()) {
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-multiSelect
+        [options]="estadosOpciones"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="estadosFiltro()"
+        (ngModelChange)="onEstadosChange($any($event))"
+        placeholder="Estado"
+        appendTo="body"
+        [filter]="false"
+        styleClass="pre-pedidos__filter"
+        ariaLabel="Filtrar por estado"
+      ></p-multiSelect>
+      <p-select
+        [options]="proveedores()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="proveedorFiltro()"
+        (ngModelChange)="onProveedorChange($any($event))"
+        placeholder="Proveedor"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-pedidos__filter"
+        ariaLabel="Filtrar por proveedor"
+      ></p-select>
+      <p-select
+        [options]="proyectos()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="proyectoFiltro()"
+        (ngModelChange)="onProyectoChange($any($event))"
+        placeholder="Proyecto"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-pedidos__filter"
+        ariaLabel="Filtrar por proyecto"
+      ></p-select>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los pedidos"
+      [descripcion]="err"
+      (reintentar)="reintentarCarga()"
+    />
+  } @else if (cargando() && pedidos().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (pedidos().length === 0) {
+    <pre-empty-state
+      variante="primer-uso"
+      titulo="Aún no hay pedidos"
+      descripcion="Cuando crees el primer pedido aparecerá aquí."
+    >
+      <p-button
+        *preIfRol="Rol.Admin"
+        label="Nuevo pedido"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </pre-empty-state>
+  } @else if (pedidosFiltrados().length === 0) {
+    <pre-empty-state
+      variante="sin-resultados"
+      titulo="Ningún pedido cumple los filtros"
+      descripcion="Ajusta o limpia los filtros para volver a verlos."
+    >
+      <p-button
+        label="Limpiar filtros"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="limpiarFiltros()"
+      ></p-button>
+    </pre-empty-state>
+  } @else {
+    <p-table
+      [value]="pedidosFiltrados()"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      sortMode="single"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '70rem' }"
+      [styleClass]="'pre-pedidos__table is-' + densidad()"
+      (onPage)="onFilasChange($any($event).rows)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="id" style="width: 5rem">
+            ID <p-sortIcon field="id"></p-sortIcon>
+          </th>
+          <th>Proyecto</th>
+          <th>Proveedor</th>
+          <th pSortableColumn="estado" style="width: 9rem">
+            Estado <p-sortIcon field="estado"></p-sortIcon>
+          </th>
+          <th style="width: 6rem">Líneas</th>
+          <th style="width: 9rem">Total estimado</th>
+          <th *preIfRol="Rol.Admin" style="width: 16rem">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr
+          class="pre-pedidos__row"
+          (click)="onRowClick(row)"
+          tabindex="0"
+          (keydown.enter)="onRowClick(row)"
+        >
+          <td>{{ row.id }}</td>
+          <td>{{ nombreProyecto(row.proyectoId) }}</td>
+          <td>{{ nombreProveedor(row.proveedorId) }}</td>
           <td>
-            <div class="flex flex-wrap gap-1">
-              <p-button
-                icon="pi pi-eye"
-                size="small"
-                severity="secondary"
-                [text]="true"
-                ariaLabel="Ver / editar"
-                (onClick)="abrirEditar(row)"
-              ></p-button>
+            <pre-status-badge [estado]="row.estado" size="md" />
+          </td>
+          <td>{{ row.lineas.length }}</td>
+          <td>{{ totalPresupuesto(row) | number: '1.2-2' }} €</td>
+          <td *preIfRol="Rol.Admin" (click)="$event.stopPropagation()">
+            <div class="pre-pedidos__actions">
               @for (acc of accionesDisponibles(row.estado); track acc.accion) {
                 <p-button
                   [label]="acc.label"
@@ -83,18 +169,11 @@
               }
             </div>
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="esAdmin() ? 7 : 6" class="text-center text-slate-500">
-          Sin pedidos registrados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
 
 <p-dialog
   [visible]="dialogVisible()"

@@ -3,6 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { MessageService } from 'primeng/api';
 
 import { App } from './app';
 import { AuthService } from './auth/auth.service';
@@ -37,6 +38,7 @@ describe('App (shell)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter(routesStub),
+        MessageService,
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(App);

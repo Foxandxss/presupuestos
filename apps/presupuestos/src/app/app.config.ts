@@ -6,18 +6,23 @@ import {
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 
 import { PresupuestosPreset } from '@operaciones/ui/tokens';
 
 import { appRoutes } from './app.routes';
+import { accesoDenegadoInterceptor } from './auth/acceso-denegado.interceptor';
 import { authInterceptor } from './auth/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([authInterceptor, accesoDenegadoInterceptor]),
+    ),
     provideRouter(appRoutes, withComponentInputBinding()),
     provideAnimationsAsync(),
     providePrimeNG({
@@ -28,5 +33,6 @@ export const appConfig: ApplicationConfig = {
         },
       },
     }),
+    MessageService,
   ],
 };

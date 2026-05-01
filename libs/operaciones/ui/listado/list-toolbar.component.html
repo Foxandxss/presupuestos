@@ -1,0 +1,69 @@
+<div class="pre-list-toolbar">
+  <div class="pre-list-toolbar__row">
+    @if (mostrarSearch()) {
+      <div class="pre-list-toolbar__search">
+        <lucide-angular
+          [img]="iconoBuscar()"
+          size="16"
+          class="pre-list-toolbar__search-icon"
+        />
+        <input
+          type="text"
+          class="pre-list-toolbar__search-input"
+          [placeholder]="placeholder()"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryInput($event)"
+          aria-label="Buscar"
+        />
+        @if (query()) {
+          <button
+            type="button"
+            class="pre-list-toolbar__search-clear"
+            aria-label="Limpiar búsqueda"
+            (click)="onQueryInput('')"
+          >
+            <lucide-angular [img]="iconoCerrar()" size="14" />
+          </button>
+        }
+      </div>
+    }
+
+    <div class="pre-list-toolbar__filters">
+      <ng-content select="[slot=filtros]" />
+    </div>
+
+    <div class="pre-list-toolbar__actions">
+      <button
+        type="button"
+        class="pre-list-toolbar__density"
+        [attr.aria-label]="
+          densidad() === 'estandar' ? 'Densidad compacta' : 'Densidad estándar'
+        "
+        [attr.title]="
+          densidad() === 'estandar' ? 'Densidad compacta' : 'Densidad estándar'
+        "
+        (click)="toggleDensidad()"
+      >
+        <lucide-angular [img]="densidadIcon()" size="14" />
+      </button>
+      <ng-content select="[slot=acciones]" />
+    </div>
+  </div>
+
+  @if (hayFiltros() || resumen()) {
+    <div class="pre-list-toolbar__summary">
+      @if (resumen(); as r) {
+        <span>{{ r }}</span>
+      }
+      @if (hayFiltros()) {
+        <button
+          type="button"
+          class="pre-list-toolbar__clear"
+          (click)="emitirLimpiar()"
+        >
+          Limpiar filtros
+        </button>
+      }
+    </div>
+  }
+</div>

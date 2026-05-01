@@ -22,6 +22,7 @@ module.exports = {
     '^@operaciones/ui/estados-pedido$':
       '<rootDir>/ui/estados-pedido/index.ts',
     '^@operaciones/ui/iconos$': '<rootDir>/ui/iconos/index.ts',
+    '^@operaciones/ui/listado$': '<rootDir>/ui/listado/index.ts',
     '^@operaciones/ui/shell$': '<rootDir>/ui/shell/index.ts',
     '^@operaciones/ui/tokens$': '<rootDir>/ui/tokens/index.ts',
   },

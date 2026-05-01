@@ -26,6 +26,8 @@ module.exports = {
       '<rootDir>/../../libs/operaciones/ui/estados-pedido/index.ts',
     '^@operaciones/ui/iconos$':
       '<rootDir>/../../libs/operaciones/ui/iconos/index.ts',
+    '^@operaciones/ui/listado$':
+      '<rootDir>/../../libs/operaciones/ui/listado/index.ts',
     '^@operaciones/ui/shell$':
       '<rootDir>/../../libs/operaciones/ui/shell/index.ts',
     '^@operaciones/ui/tokens$':
