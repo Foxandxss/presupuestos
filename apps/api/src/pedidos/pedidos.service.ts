@@ -32,7 +32,6 @@ import {
 import {
   AccionPedido,
   MaquinaEstadosPedido,
-  TransicionIlegalError,
 } from './maquina-estados-pedido';
 import { ResolutorTarifa } from './resolutor-tarifa';
 
@@ -146,15 +145,7 @@ export class PedidosService {
 
   transitar(id: number, accion: AccionPedido): PedidoDto {
     const actual = this.requirePedido(id);
-    let siguiente: EstadoPedido;
-    try {
-      siguiente = MaquinaEstadosPedido.aplicar(actual.estado, accion);
-    } catch (err) {
-      if (err instanceof TransicionIlegalError) {
-        throw new ConflictException(err.message);
-      }
-      throw err;
-    }
+    const siguiente = MaquinaEstadosPedido.aplicar(actual.estado, accion);
     const updates: Partial<Pedido> = { estado: siguiente };
     const ahora = nowISODate();
     if (accion === 'solicitar') {

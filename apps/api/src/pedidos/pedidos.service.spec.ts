@@ -11,6 +11,7 @@ import {
   proyectos,
   servicios,
 } from '../db/schema';
+import { TransicionIlegalError } from './maquina-estados-pedido';
 import { PedidosService } from './pedidos.service';
 import { ResolutorTarifa } from './resolutor-tarifa';
 
@@ -291,10 +292,10 @@ describe('PedidosService', () => {
       expect(resolutor.resolver(proveedorId, senior)).toBe(200);
     });
 
-    it('lanza 409 al aplicar transición ilegal (Borrador → aprobar)', () => {
+    it('lanza TransicionIlegalError al aplicar transición ilegal (Borrador → aprobar)', () => {
       const { pedido } = setupConLinea();
       expect(() => service.transitar(pedido.id, 'aprobar')).toThrow(
-        ConflictException,
+        TransicionIlegalError,
       );
     });
 
@@ -314,7 +315,7 @@ describe('PedidosService', () => {
       const rechazado = service.transitar(pedido.id, 'rechazar');
       expect(rechazado.estado).toBe('Rechazado');
       expect(() => service.transitar(pedido.id, 'cancelar')).toThrow(
-        ConflictException,
+        TransicionIlegalError,
       );
     });
 

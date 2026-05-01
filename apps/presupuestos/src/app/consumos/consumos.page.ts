@@ -37,6 +37,7 @@ import type {
 } from '../catalogo/catalogo.types';
 import { PedidosApi } from '../pedidos/pedidos.api';
 import type { LineaPedido, Pedido } from '../pedidos/pedidos.types';
+import { mapearErrorACopy } from '@operaciones/ui/errores';
 import { ConsumosApi } from './consumos.api';
 import type { Consumo, CrearConsumo } from './consumos.types';
 
@@ -326,7 +327,16 @@ export class ConsumosPage {
 }
 
 function extraerMensaje(err: HttpErrorResponse): string {
-  const body = err.error as { message?: string | string[] } | undefined;
+  const body = err.error as
+    | { code?: string; message?: string | string[]; fields?: Record<string, unknown> }
+    | undefined;
+  if (typeof body?.code === 'string' && typeof body.message === 'string') {
+    return mapearErrorACopy({
+      code: body.code,
+      message: body.message,
+      fields: body.fields,
+    });
+  }
   if (Array.isArray(body?.message)) {
     return body.message.join(', ');
   }

@@ -1,0 +1,1 @@
+export { mapearErrorACopy } from './errores';

@@ -3,7 +3,6 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 
@@ -21,7 +20,6 @@ import { MaquinaEstadosPedido } from '../pedidos/maquina-estados-pedido';
 import { ConsumoDto, ConsumoFiltrosQuery, CrearConsumoDto } from './dto/consumo.dto';
 import {
   ContextoValidacionConsumo,
-  ValidacionConsumoError,
   ValidadorConsumo,
 } from './validador-consumo';
 
@@ -104,20 +102,10 @@ export class ConsumosService {
       duplicado,
     };
 
-    try {
-      ValidadorConsumo.validar(
-        { mes: dto.mes, anio: dto.anio, horas: dto.horasConsumidas },
-        ctx,
-      );
-    } catch (err) {
-      if (err instanceof ValidacionConsumoError) {
-        throw new UnprocessableEntityException({
-          motivo: err.motivo,
-          message: err.message,
-        });
-      }
-      throw err;
-    }
+    ValidadorConsumo.validar(
+      { mes: dto.mes, anio: dto.anio, horas: dto.horasConsumidas },
+      ctx,
+    );
 
     const [creado] = this.db
       .insert(consumosMensuales)

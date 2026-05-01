@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { RolUsuario } from '../../db/schema';
+import type { Rol } from '@operaciones/dominio';
 
 export class UsuarioPublicoDto {
   @ApiProperty({ example: 1 })
@@ -10,7 +10,7 @@ export class UsuarioPublicoDto {
   email!: string;
 
   @ApiProperty({ example: 'admin', enum: ['admin', 'consultor'] })
-  rol!: RolUsuario;
+  rol!: Rol;
 }
 
 export class LoginResponseDto {

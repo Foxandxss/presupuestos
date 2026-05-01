@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { makeTestDb } from '../catalogo/testing/db';
 import {
@@ -15,6 +11,7 @@ import {
 import { PedidosService } from '../pedidos/pedidos.service';
 import { ResolutorTarifa } from '../pedidos/resolutor-tarifa';
 import { ConsumosService } from './consumos.service';
+import { ValidacionConsumoError } from './validador-consumo';
 
 describe('ConsumosService', () => {
   let close: () => void;
@@ -165,7 +162,7 @@ describe('ConsumosService', () => {
         },
       ],
     });
-    expect.assertions(2);
+    expect.assertions(3);
     try {
       service.create({
         lineaPedidoId: pedido.lineas[0].id,
@@ -175,10 +172,9 @@ describe('ConsumosService', () => {
         horasConsumidas: 10,
       });
     } catch (err) {
-      expect(err).toBeInstanceOf(UnprocessableEntityException);
-      expect((err as UnprocessableEntityException).getResponse()).toMatchObject(
-        { motivo: 'pedido_no_activo' },
-      );
+      expect(err).toBeInstanceOf(ValidacionConsumoError);
+      expect((err as ValidacionConsumoError).motivo).toBe('pedido_no_activo');
+      expect((err as ValidacionConsumoError).code).toBe('pedido_no_activo');
     }
   });
 
@@ -186,7 +182,7 @@ describe('ConsumosService', () => {
     const { lineaId } = setupPedidoAprobado();
     const otroProveedorId = crearProveedor('Otra');
     const otroRecursoId = crearRecurso('Bob', otroProveedorId);
-    expect.assertions(1);
+    expect.assertions(2);
     try {
       service.create({
         lineaPedidoId: lineaId,
@@ -196,8 +192,9 @@ describe('ConsumosService', () => {
         horasConsumidas: 10,
       });
     } catch (err) {
-      expect((err as UnprocessableEntityException).getResponse()).toMatchObject(
-        { motivo: 'recurso_otro_proveedor' },
+      expect(err).toBeInstanceOf(ValidacionConsumoError);
+      expect((err as ValidacionConsumoError).motivo).toBe(
+        'recurso_otro_proveedor',
       );
     }
   });
@@ -207,7 +204,7 @@ describe('ConsumosService', () => {
       fechaInicio: '2026-04-01',
       fechaFin: '2026-09-30',
     });
-    expect.assertions(1);
+    expect.assertions(2);
     try {
       service.create({
         lineaPedidoId: lineaId,
@@ -217,8 +214,9 @@ describe('ConsumosService', () => {
         horasConsumidas: 10,
       });
     } catch (err) {
-      expect((err as UnprocessableEntityException).getResponse()).toMatchObject(
-        { motivo: 'mes_fuera_de_ventana' },
+      expect(err).toBeInstanceOf(ValidacionConsumoError);
+      expect((err as ValidacionConsumoError).motivo).toBe(
+        'mes_fuera_de_ventana',
       );
     }
   });
@@ -234,7 +232,7 @@ describe('ConsumosService', () => {
       anio: 2026,
       horasConsumidas: 25,
     });
-    expect.assertions(1);
+    expect.assertions(3);
     try {
       service.create({
         lineaPedidoId: lineaId,
@@ -244,9 +242,13 @@ describe('ConsumosService', () => {
         horasConsumidas: 10,
       });
     } catch (err) {
-      expect((err as UnprocessableEntityException).getResponse()).toMatchObject(
-        { motivo: 'excede_horas_ofertadas' },
+      expect(err).toBeInstanceOf(ValidacionConsumoError);
+      expect((err as ValidacionConsumoError).motivo).toBe(
+        'excede_horas_ofertadas',
       );
+      expect((err as ValidacionConsumoError).fields).toEqual({
+        disponibles: 5,
+      });
     }
   });
 
@@ -259,7 +261,7 @@ describe('ConsumosService', () => {
       anio: 2026,
       horasConsumidas: 20,
     });
-    expect.assertions(1);
+    expect.assertions(2);
     try {
       service.create({
         lineaPedidoId: lineaId,
@@ -269,9 +271,8 @@ describe('ConsumosService', () => {
         horasConsumidas: 5,
       });
     } catch (err) {
-      expect((err as UnprocessableEntityException).getResponse()).toMatchObject(
-        { motivo: 'consumo_duplicado' },
-      );
+      expect(err).toBeInstanceOf(ValidacionConsumoError);
+      expect((err as ValidacionConsumoError).motivo).toBe('consumo_duplicado');
     }
   });
 

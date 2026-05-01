@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@operaciones/dominio": ["libs/operaciones/dominio/index.ts"],
+      "@operaciones/ui/errores": ["libs/operaciones/ui/errores/index.ts"]
+    },
     "sourceMap": true,
     "declaration": false,
     "moduleResolution": "node",

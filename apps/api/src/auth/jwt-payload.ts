@@ -1,7 +1,7 @@
-import type { RolUsuario } from '../db/schema';
+import type { Rol } from '@operaciones/dominio';
 
 export interface JwtPayload {
   sub: number;
   email: string;
-  rol: RolUsuario;
+  rol: Rol;
 }

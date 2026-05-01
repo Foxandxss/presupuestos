@@ -10,17 +10,14 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
+import { ESTADOS_PEDIDO, Rol, type EstadoPedido } from '@operaciones/dominio';
+
+export { ESTADOS_PEDIDO, Rol, type EstadoPedido };
+
 export const meta = sqliteTable('meta', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
-
-export const RolUsuario = {
-  Admin: 'admin',
-  Consultor: 'consultor',
-} as const;
-
-export type RolUsuario = (typeof RolUsuario)[keyof typeof RolUsuario];
 
 export const usuarios = sqliteTable('usuarios', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -155,18 +152,6 @@ export const estimacionesPerfil = sqliteTable(
 
 export type EstimacionPerfil = typeof estimacionesPerfil.$inferSelect;
 export type EstimacionPerfilNueva = typeof estimacionesPerfil.$inferInsert;
-
-export const ESTADOS_PEDIDO = [
-  'Borrador',
-  'Solicitado',
-  'Aprobado',
-  'EnEjecucion',
-  'Consumido',
-  'Rechazado',
-  'Cancelado',
-] as const;
-
-export type EstadoPedido = (typeof ESTADOS_PEDIDO)[number];
 
 export const pedidos = sqliteTable('pedidos', {
   id: integer('id').primaryKey({ autoIncrement: true }),

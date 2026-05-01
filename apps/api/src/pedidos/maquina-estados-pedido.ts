@@ -2,6 +2,7 @@
 // (congelar tarifas al aprobar, auto-transiciones por consumo). El servicio sólo
 // llama a estas funciones puras y aplica los cambios resultantes.
 
+import { DomainError } from '@operaciones/dominio';
 import type { EstadoPedido } from '../db/schema';
 
 export const ACCIONES_PEDIDO = [
@@ -26,12 +27,16 @@ const TRANSICIONES_LEGALES: Record<
   Cancelado: {},
 };
 
-export class TransicionIlegalError extends Error {
+export class TransicionIlegalError extends DomainError {
   constructor(
     public readonly estado: EstadoPedido,
     public readonly accion: AccionPedido | 'consumir',
   ) {
-    super(`No se puede '${accion}' un pedido en estado '${estado}'`);
+    super(
+      'transicion_ilegal',
+      `No se puede '${accion}' un pedido en estado '${estado}'`,
+      { estado, accion },
+    );
     this.name = 'TransicionIlegalError';
   }
 }

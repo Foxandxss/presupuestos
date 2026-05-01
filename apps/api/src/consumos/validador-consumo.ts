@@ -1,8 +1,9 @@
 // Deep module: impone los invariantes de un ConsumoMensual propuesto antes de
 // que llegue a la base de datos. Los servicios sólo construyen el contexto
 // (cargando lo que haga falta de Drizzle) e invocan `validar`; los errores
-// específicos viajan hasta el controller como UnprocessableEntityException.
+// específicos viajan hasta el controller vía DomainError + ExceptionFilter.
 
+import { DomainError } from '@operaciones/dominio';
 import type { EstadoPedido } from '../db/schema';
 
 export const MOTIVOS_VALIDACION_CONSUMO = [
@@ -16,12 +17,13 @@ export const MOTIVOS_VALIDACION_CONSUMO = [
 export type MotivoValidacionConsumo =
   (typeof MOTIVOS_VALIDACION_CONSUMO)[number];
 
-export class ValidacionConsumoError extends Error {
+export class ValidacionConsumoError extends DomainError {
   constructor(
     public readonly motivo: MotivoValidacionConsumo,
     message: string,
+    fields?: Record<string, unknown>,
   ) {
-    super(message);
+    super(motivo, message, fields);
     this.name = 'ValidacionConsumoError';
   }
 }
@@ -76,13 +78,14 @@ export const ValidadorConsumo = {
     }
     const total = ctx.horasYaConsumidasLinea + propuesta.horas;
     if (total > ctx.horasOfertadasLinea) {
-      const restantes = Math.max(
+      const disponibles = Math.max(
         0,
         ctx.horasOfertadasLinea - ctx.horasYaConsumidasLinea,
       );
       throw new ValidacionConsumoError(
         'excede_horas_ofertadas',
-        `Las horas registradas (${total}) exceden las ofertadas (${ctx.horasOfertadasLinea}). Restantes: ${restantes}`,
+        `Las horas registradas (${total}) exceden las ofertadas (${ctx.horasOfertadasLinea}). Restantes: ${disponibles}`,
+        { disponibles },
       );
     }
   },

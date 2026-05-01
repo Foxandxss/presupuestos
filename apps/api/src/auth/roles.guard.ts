@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import type { RolUsuario } from '../db/schema';
+import type { Rol } from '@operaciones/dominio';
 import type { JwtPayload } from './jwt-payload';
 import { ROLES_KEY } from './roles.decorator';
 
@@ -15,7 +15,7 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.getAllAndOverride<RolUsuario[] | undefined>(
+    const required = this.reflector.getAllAndOverride<Rol[] | undefined>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
