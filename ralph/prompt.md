@@ -38,6 +38,7 @@ Before committing, run the feedback loops:
 
 - `nx run-many -t lint` to run the linters
 - `nx run-many -t test` to run the tests
+- `nx run-many -t build` to run the build
 
 # COMMIT
 
