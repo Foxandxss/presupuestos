@@ -14,6 +14,8 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@operaciones/dominio$': '<rootDir>/../../libs/operaciones/dominio/index.ts',
+    '^@operaciones/ui/charts$':
+      '<rootDir>/../../libs/operaciones/ui/charts/index.ts',
     '^@operaciones/ui/command-palette$':
       '<rootDir>/../../libs/operaciones/ui/command-palette/index.ts',
     '^@operaciones/ui/errores$':
@@ -22,6 +24,8 @@ module.exports = {
       '<rootDir>/../../libs/operaciones/ui/estados-pedido/index.ts',
     '^@operaciones/ui/iconos$':
       '<rootDir>/../../libs/operaciones/ui/iconos/index.ts',
+    '^@operaciones/ui/kpis$':
+      '<rootDir>/../../libs/operaciones/ui/kpis/index.ts',
     '^@operaciones/ui/listado$':
       '<rootDir>/../../libs/operaciones/ui/listado/index.ts',
     '^@operaciones/ui/shell$':

@@ -16,12 +16,14 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'html'],
   moduleNameMapper: {
     '^@operaciones/dominio$': '<rootDir>/dominio/index.ts',
+    '^@operaciones/ui/charts$': '<rootDir>/ui/charts/index.ts',
     '^@operaciones/ui/command-palette$':
       '<rootDir>/ui/command-palette/index.ts',
     '^@operaciones/ui/errores$': '<rootDir>/ui/errores/index.ts',
     '^@operaciones/ui/estados-pedido$':
       '<rootDir>/ui/estados-pedido/index.ts',
     '^@operaciones/ui/iconos$': '<rootDir>/ui/iconos/index.ts',
+    '^@operaciones/ui/kpis$': '<rootDir>/ui/kpis/index.ts',
     '^@operaciones/ui/listado$': '<rootDir>/ui/listado/index.ts',
     '^@operaciones/ui/shell$': '<rootDir>/ui/shell/index.ts',
     '^@operaciones/ui/tokens$': '<rootDir>/ui/tokens/index.ts',

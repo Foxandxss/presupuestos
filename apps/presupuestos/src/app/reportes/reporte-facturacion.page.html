@@ -1,210 +1,261 @@
-<p-toast></p-toast>
-
-<div class="mx-auto max-w-7xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Facturación mensual</h1>
-    <p-button
-      label="Exportar CSV"
-      icon="pi pi-download"
-      severity="secondary"
-      (onClick)="exportarCsv()"
-    ></p-button>
-  </div>
-
-  <form
-    [formGroup]="form"
-    (ngSubmit)="aplicar()"
-    class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 p-4 bg-slate-50 rounded-md"
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Facturación mensual"
+    descripcion="Tendencia de facturación por mes y proveedor con desglose por consumo."
   >
-    <div class="flex flex-col">
-      <label for="mesDesde" class="text-sm text-slate-600 mb-1">Desde mes</label>
-      <p-select
-        inputId="mesDesde"
-        formControlName="mesDesde"
-        [options]="meses"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="—"
-        [showClear]="true"
-      ></p-select>
-    </div>
-    <div class="flex flex-col">
-      <label for="anioDesde" class="text-sm text-slate-600 mb-1">Desde año</label>
-      <p-inputNumber
-        inputId="anioDesde"
-        formControlName="anioDesde"
-        [useGrouping]="false"
-        [min]="2000"
-        [max]="2100"
-        placeholder="—"
-      ></p-inputNumber>
-    </div>
-    <div class="flex flex-col">
-      <label for="mesHasta" class="text-sm text-slate-600 mb-1">Hasta mes</label>
-      <p-select
-        inputId="mesHasta"
-        formControlName="mesHasta"
-        [options]="meses"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="—"
-        [showClear]="true"
-      ></p-select>
-    </div>
-    <div class="flex flex-col">
-      <label for="anioHasta" class="text-sm text-slate-600 mb-1">Hasta año</label>
-      <p-inputNumber
-        inputId="anioHasta"
-        formControlName="anioHasta"
-        [useGrouping]="false"
-        [min]="2000"
-        [max]="2100"
-        placeholder="—"
-      ></p-inputNumber>
-    </div>
-    <div class="flex flex-col">
-      <label for="anio" class="text-sm text-slate-600 mb-1">Año (atajo)</label>
-      <p-inputNumber
-        inputId="anio"
-        formControlName="anio"
-        [useGrouping]="false"
-        [min]="2000"
-        [max]="2100"
-        placeholder="—"
-      ></p-inputNumber>
-    </div>
-    <div class="flex flex-col">
-      <label for="proveedor" class="text-sm text-slate-600 mb-1">Proveedor</label>
-      <p-select
-        inputId="proveedor"
-        formControlName="proveedorId"
-        [options]="proveedoresOpciones()"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="Todos"
-        [showClear]="true"
-      ></p-select>
-    </div>
-    <div class="flex flex-col">
-      <label for="proyecto" class="text-sm text-slate-600 mb-1">Proyecto</label>
-      <p-select
-        inputId="proyecto"
-        formControlName="proyectoId"
-        [options]="proyectosOpciones()"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="Todos"
-        [showClear]="true"
-      ></p-select>
-    </div>
-    <div class="flex items-end gap-2">
-      <p-button label="Aplicar" type="submit"></p-button>
+    <div slot="actions">
       <p-button
-        label="Limpiar"
+        label="Exportar CSV"
+        icon="pi pi-download"
         severity="secondary"
-        [text]="true"
-        type="button"
-        (onClick)="limpiar()"
+        [outlined]="true"
+        (onClick)="exportarCsv()"
       ></p-button>
     </div>
-  </form>
+  </pre-page-header>
 
-  <div class="mb-3 text-right text-slate-700">
-    Total general:
-    <span class="font-semibold"
-      >{{ totalGeneral() | number: '1.2-2' }} €</span
-    >
-  </div>
-
-  <p-table
-    [value]="filas()"
-    [paginator]="true"
-    [rows]="20"
-    [rowsPerPageOptions]="[10, 20, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    [tableStyle]="{ 'min-width': '60rem' }"
+  <pre-list-toolbar
+    slot="toolbar"
+    [mostrarSearch]="false"
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
   >
-    <ng-template pTemplate="header">
-      <tr>
-        <th style="width: 3rem"></th>
-        <th pSortableColumn="anio" style="width: 6rem">
-          Año <p-sortIcon field="anio"></p-sortIcon>
-        </th>
-        <th pSortableColumn="mes">
-          Mes <p-sortIcon field="mes"></p-sortIcon>
-        </th>
-        <th pSortableColumn="proveedorNombre">
-          Proveedor <p-sortIcon field="proveedorNombre"></p-sortIcon>
-        </th>
-        <th pSortableColumn="totalEur" style="width: 12rem">
-          Total <p-sortIcon field="totalEur"></p-sortIcon>
-        </th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>
-          <p-button
-            [icon]="
-              estaExpandida(row) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
-            "
-            size="small"
-            [text]="true"
-            ariaLabel="Ver detalle"
-            (onClick)="toggleDetalle(row)"
-          ></p-button>
-        </td>
-        <td>{{ row.anio }}</td>
-        <td>{{ nombreMes(row.mes) }}</td>
-        <td>{{ row.proveedorNombre }}</td>
-        <td>{{ row.totalEur | number: '1.2-2' }} €</td>
-      </tr>
-      @if (estaExpandida(row)) {
-        <tr>
-          <td colspan="5" class="bg-slate-50 p-3">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-slate-600">
-                  <th class="py-1">Proyecto</th>
-                  <th class="py-1">Pedido</th>
-                  <th class="py-1">Perfil</th>
-                  <th class="py-1">Recurso</th>
-                  <th class="py-1 text-right">Horas</th>
-                  <th class="py-1 text-right">€/h</th>
-                  <th class="py-1 text-right">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (d of row.detalle; track d.lineaPedidoId + '-' + d.recursoId) {
-                  <tr class="border-t border-slate-200">
-                    <td class="py-1">{{ d.proyectoNombre }}</td>
-                    <td class="py-1">#{{ d.pedidoId }}</td>
-                    <td class="py-1">{{ d.perfilTecnicoNombre }}</td>
-                    <td class="py-1">{{ d.recursoNombre }}</td>
-                    <td class="py-1 text-right">
-                      {{ d.horasConsumidas | number: '1.0-2' }}
-                    </td>
-                    <td class="py-1 text-right">
-                      {{ d.precioHora | number: '1.2-2' }} €
-                    </td>
-                    <td class="py-1 text-right">
-                      {{ d.importe | number: '1.2-2' }} €
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </td>
-        </tr>
-      }
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td colspan="5" class="text-center text-slate-500">
-          Sin facturación para los filtros aplicados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-select
+        [options]="meses"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="mesDesdeFiltro()"
+        (ngModelChange)="onMesDesdeChange($any($event))"
+        placeholder="Desde mes"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Desde mes"
+      ></p-select>
+      <p-inputNumber
+        [ngModel]="anioDesdeFiltro()"
+        (ngModelChange)="onAnioDesdeChange($any($event))"
+        [useGrouping]="false"
+        [min]="2000"
+        [max]="2100"
+        placeholder="Desde año"
+        ariaLabel="Desde año"
+      ></p-inputNumber>
+      <p-select
+        [options]="meses"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="mesHastaFiltro()"
+        (ngModelChange)="onMesHastaChange($any($event))"
+        placeholder="Hasta mes"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Hasta mes"
+      ></p-select>
+      <p-inputNumber
+        [ngModel]="anioHastaFiltro()"
+        (ngModelChange)="onAnioHastaChange($any($event))"
+        [useGrouping]="false"
+        [min]="2000"
+        [max]="2100"
+        placeholder="Hasta año"
+        ariaLabel="Hasta año"
+      ></p-inputNumber>
+      <p-inputNumber
+        [ngModel]="anioFiltro()"
+        (ngModelChange)="onAnioChange($any($event))"
+        [useGrouping]="false"
+        [min]="2000"
+        [max]="2100"
+        placeholder="Año (atajo)"
+        ariaLabel="Año"
+      ></p-inputNumber>
+      <p-select
+        [options]="proveedores()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="proveedorFiltro()"
+        (ngModelChange)="onProveedorChange($any($event))"
+        placeholder="Proveedor"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por proveedor"
+      ></p-select>
+      <p-select
+        [options]="proyectos()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="proyectoFiltro()"
+        (ngModelChange)="onProyectoChange($any($event))"
+        placeholder="Proyecto"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por proyecto"
+      ></p-select>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudo cargar el reporte"
+      [descripcion]="err"
+      (reintentar)="reintentar()"
+    />
+  } @else if (cargando() && filas().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else {
+    <section class="pre-reportes__kpis" aria-label="Indicadores del reporte">
+      <pre-kpi-tile
+        etiqueta="Facturación del periodo"
+        [valor]="formatearImporte(kpis().totalEur)"
+        [icono]="icono.facturacion"
+      />
+      <pre-kpi-tile
+        etiqueta="Mes pico"
+        [valor]="kpis().mesPicoLabel ?? '—'"
+        [icono]="icono.calendario"
+      />
+      <pre-kpi-tile
+        etiqueta="Proveedor top"
+        [valor]="kpis().proveedorTopNombre ?? '—'"
+        [icono]="icono.proveedores"
+      />
+      <pre-kpi-tile
+        etiqueta="Pedidos facturados"
+        [valor]="formatearEnteroES(kpis().pedidosFacturados)"
+        [icono]="icono.pedidos"
+      />
+    </section>
+
+    <section
+      class="pre-reportes__chart-card"
+      aria-label="Facturación por mes y proveedor"
+    >
+      <h2 class="pre-reportes__chart-titulo">
+        Facturación por mes y proveedor
+      </h2>
+      <pre-chart
+        tipo="bar"
+        [data]="chartData()"
+        [opciones]="chartOptions()"
+        [alto]="320"
+        ariaLabel="Facturación mensual por proveedor"
+        mensajeVacio="Sin facturación en el periodo."
+      />
+    </section>
+
+    @if (filas().length === 0) {
+      <pre-empty-state
+        variante="sin-resultados"
+        titulo="Sin facturación en el periodo"
+        descripcion="Ajusta o limpia los filtros para volver a verla."
+      >
+        <p-button
+          label="Limpiar filtros"
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="limpiarFiltros()"
+        ></p-button>
+      </pre-empty-state>
+    } @else {
+      <p-table
+        [value]="filas()"
+        [paginator]="true"
+        [rows]="filasPorPagina()"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [loading]="cargando()"
+        sortMode="single"
+        [tableStyle]="{ 'min-width': '60rem' }"
+        [styleClass]="'pre-lista__table is-' + densidad()"
+        (onPage)="onFilasChange($any($event).rows)"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width: 3rem"></th>
+            <th pSortableColumn="anio" style="width: 6rem">
+              Año <p-sortIcon field="anio"></p-sortIcon>
+            </th>
+            <th pSortableColumn="mes">
+              Mes <p-sortIcon field="mes"></p-sortIcon>
+            </th>
+            <th pSortableColumn="proveedorNombre">
+              Proveedor <p-sortIcon field="proveedorNombre"></p-sortIcon>
+            </th>
+            <th pSortableColumn="totalEur" style="width: 12rem">
+              Total <p-sortIcon field="totalEur"></p-sortIcon>
+            </th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>
+              <p-button
+                [icon]="
+                  estaExpandida(row)
+                    ? 'pi pi-chevron-down'
+                    : 'pi pi-chevron-right'
+                "
+                size="small"
+                [text]="true"
+                ariaLabel="Ver detalle"
+                (onClick)="toggleDetalle(row)"
+              ></p-button>
+            </td>
+            <td>{{ row.anio }}</td>
+            <td>{{ nombreMes(row.mes) }}</td>
+            <td>{{ row.proveedorNombre }}</td>
+            <td>{{ formatearImporte(row.totalEur) }}</td>
+          </tr>
+          @if (estaExpandida(row)) {
+            <tr>
+              <td colspan="5" class="bg-slate-50 p-3">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-slate-600">
+                      <th class="py-1">Proyecto</th>
+                      <th class="py-1">Pedido</th>
+                      <th class="py-1">Perfil</th>
+                      <th class="py-1">Recurso</th>
+                      <th class="py-1 text-right">Horas</th>
+                      <th class="py-1 text-right">€/h</th>
+                      <th class="py-1 text-right">Importe</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (
+                      d of row.detalle;
+                      track d.lineaPedidoId + '-' + d.recursoId
+                    ) {
+                      <tr class="border-t border-slate-200">
+                        <td class="py-1">{{ d.proyectoNombre }}</td>
+                        <td class="py-1">#{{ d.pedidoId }}</td>
+                        <td class="py-1">{{ d.perfilTecnicoNombre }}</td>
+                        <td class="py-1">{{ d.recursoNombre }}</td>
+                        <td class="py-1 text-right">
+                          {{ d.horasConsumidas | number: '1.0-2' }}
+                        </td>
+                        <td class="py-1 text-right">
+                          {{ formatearImporte(d.precioHora) }}
+                        </td>
+                        <td class="py-1 text-right">
+                          {{ formatearImporte(d.importe) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          }
+        </ng-template>
+      </p-table>
+    }
+  }
+</pre-list-page>
