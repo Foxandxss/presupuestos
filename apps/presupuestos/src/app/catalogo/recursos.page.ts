@@ -4,16 +4,20 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -21,51 +25,117 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
-import { ToastModule } from 'primeng/toast';
 
-import { AuthService } from '../auth/auth.service';
+import { Rol } from '@operaciones/dominio';
+import {
+  type DensidadLista,
+  EmptyStateComponent,
+  ErrorStateComponent,
+  InlineEditComponent,
+  ListPageComponent,
+  ListToolbarComponent,
+  LoadingStateComponent,
+} from '@operaciones/ui/listado';
+import { PageHeaderComponent } from '@operaciones/ui/shell';
+
+import { PreIfRolDirective } from '../auth/pre-if-rol.directive';
+import {
+  leerDensidadInicial,
+  leerFilasInicial,
+  persistirDensidad,
+  persistirFilas,
+} from '../listado-prefs';
 import { ProveedoresApi, RecursosApi } from './catalogo.api';
 import type { Proveedor, Recurso } from './catalogo.types';
+
+const SECCION = 'recursos';
 
 @Component({
   selector: 'app-recursos',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TableModule,
     DialogModule,
     ButtonModule,
     InputTextModule,
     SelectModule,
-    ToastModule,
     ConfirmDialogModule,
+    ListPageComponent,
+    ListToolbarComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    LoadingStateComponent,
+    InlineEditComponent,
+    PageHeaderComponent,
+    PreIfRolDirective,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   templateUrl: './recursos.page.html',
+  styleUrl: '../lista-base.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecursosPage {
   private readonly api = inject(RecursosApi);
   private readonly proveedoresApi = inject(ProveedoresApi);
   private readonly fb = inject(FormBuilder);
-  private readonly auth = inject(AuthService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  protected readonly esAdmin = computed(() => this.auth.rol() === 'admin');
+  protected readonly Rol = Rol;
   protected readonly recursos = signal<Recurso[]>([]);
   protected readonly proveedores = signal<Proveedor[]>([]);
   protected readonly cargando = signal(false);
+  protected readonly errorCarga = signal<string | null>(null);
   protected readonly dialogVisible = signal(false);
   protected readonly editandoId = signal<number | null>(null);
 
+  protected readonly densidad = signal<DensidadLista>(leerDensidadInicial(SECCION));
+  protected readonly filasPorPagina = signal<number>(leerFilasInicial(SECCION));
+
   protected readonly proveedoresPorId = computed(() => {
     const map = new Map<number, string>();
-    for (const p of this.proveedores()) {
-      map.set(p.id, p.nombre);
-    }
+    for (const p of this.proveedores()) map.set(p.id, p.nombre);
     return map;
+  });
+
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+
+  protected readonly q = computed(() => this.queryParams().get('q') ?? '');
+  protected readonly proveedorFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('proveedor');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) ? n : null;
+  });
+
+  protected readonly hayFiltrosActivos = computed(
+    () => this.q().length > 0 || this.proveedorFiltro() !== null,
+  );
+
+  protected readonly recursosFiltrados = computed(() => {
+    const lista = this.recursos();
+    const query = this.q().trim().toLowerCase();
+    const proveedorId = this.proveedorFiltro();
+    return lista.filter((r) => {
+      if (proveedorId !== null && r.proveedorId !== proveedorId) return false;
+      if (query.length > 0 && !r.nombre.toLowerCase().includes(query)) {
+        return false;
+      }
+      return true;
+    });
+  });
+
+  protected readonly resumen = computed(() => {
+    const total = this.recursos().length;
+    const visibles = this.recursosFiltrados().length;
+    if (total === 0 || !this.hayFiltrosActivos()) return null;
+    return `Mostrando ${visibles} de ${total}`;
   });
 
   protected readonly form: FormGroup = this.fb.group({
@@ -75,14 +145,53 @@ export class RecursosPage {
 
   constructor() {
     this.cargar();
+    effect(() => persistirDensidad(SECCION, this.densidad()));
+    effect(() => persistirFilas(SECCION, this.filasPorPagina()));
   }
 
   nombreProveedor(id: number): string {
     return this.proveedoresPorId().get(id) ?? `#${id}`;
   }
 
+  protected onQueryChange(valor: string): void {
+    this.actualizarParam('q', valor.trim() || null);
+  }
+
+  protected onProveedorChange(valor: number | null): void {
+    this.actualizarParam('proveedor', valor ? String(valor) : null);
+  }
+
+  protected limpiarFiltros(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'replace',
+    });
+  }
+
+  protected onDensidadChange(d: DensidadLista): void {
+    this.densidad.set(d);
+  }
+
+  protected onFilasChange(filas: number): void {
+    this.filasPorPagina.set(filas);
+  }
+
+  protected reintentarCarga(): void {
+    this.cargar();
+  }
+
+  private actualizarParam(clave: string, valor: string | null): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [clave]: valor },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   private cargar(): void {
     this.cargando.set(true);
+    this.errorCarga.set(null);
     forkJoin({
       recursos: this.api.list(),
       proveedores: this.proveedoresApi.list(),
@@ -94,11 +203,7 @@ export class RecursosPage {
       },
       error: (err: HttpErrorResponse) => {
         this.cargando.set(false);
-        this.toast.add({
-          severity: 'error',
-          summary: 'Error al cargar',
-          detail: err.message,
-        });
+        this.errorCarga.set(extraerMensaje(err));
       },
     });
   }
@@ -143,6 +248,25 @@ export class RecursosPage {
         this.toast.add({
           severity: 'error',
           summary: 'No se pudo guardar',
+          detail: extraerMensaje(err),
+        });
+      },
+    });
+  }
+
+  guardarInline(row: Recurso, nuevoNombre: string): void {
+    this.api.update(row.id, { nombre: nuevoNombre }).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Recurso actualizado',
+        });
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo actualizar',
           detail: extraerMensaje(err),
         });
       },

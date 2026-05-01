@@ -1,0 +1,34 @@
+.pre-lista__row {
+  cursor: pointer;
+}
+
+.pre-lista__row:hover {
+  background-color: var(--surface-muted);
+}
+
+.pre-lista__row:focus-visible {
+  outline: 2px solid var(--ring-focus);
+  outline-offset: -2px;
+}
+
+.pre-lista__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  visibility: hidden;
+}
+
+.pre-lista__row:hover .pre-lista__actions,
+.pre-lista__row:focus-within .pre-lista__actions {
+  visibility: visible;
+}
+
+:host ::ng-deep .pre-lista__table.is-compacta .p-datatable-tbody > tr > td,
+:host ::ng-deep .pre-lista__table.is-compacta .p-datatable-thead > tr > th {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+:host ::ng-deep .pre-lista__filter {
+  min-width: 160px;
+}

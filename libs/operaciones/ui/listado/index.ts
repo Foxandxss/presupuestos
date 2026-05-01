@@ -9,3 +9,4 @@ export {
 } from './empty-state.component';
 export { LoadingStateComponent } from './loading-state.component';
 export { ErrorStateComponent } from './error-state.component';
+export { InlineEditComponent } from './inline-edit.component';

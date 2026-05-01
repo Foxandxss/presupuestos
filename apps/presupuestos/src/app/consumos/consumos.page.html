@@ -1,76 +1,173 @@
-<p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="mx-auto max-w-7xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Consumos mensuales</h1>
-    <p-button
-      label="Registrar consumo"
-      icon="pi pi-plus"
-      (onClick)="abrirCrear()"
-    ></p-button>
-  </div>
-
-  <p-table
-    [value]="consumos()"
-    [paginator]="true"
-    [rows]="10"
-    [rowsPerPageOptions]="[10, 25, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    dataKey="id"
-    [tableStyle]="{ 'min-width': '60rem' }"
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Consumos mensuales"
+    descripcion="Horas registradas por línea de pedido y recurso, por mes."
   >
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="anio" style="width: 6rem">
-          Año <p-sortIcon field="anio"></p-sortIcon>
-        </th>
-        <th pSortableColumn="mes" style="width: 5rem">
-          Mes <p-sortIcon field="mes"></p-sortIcon>
-        </th>
-        <th>Pedido</th>
-        <th>Perfil</th>
-        <th>Recurso</th>
-        <th pSortableColumn="horasConsumidas" style="width: 7rem">
-          Horas <p-sortIcon field="horasConsumidas"></p-sortIcon>
-        </th>
-        @if (esAdmin()) {
-          <th style="width: 5rem"></th>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>{{ row.anio }}</td>
-        <td>{{ row.mes }}</td>
-        <td>{{ nombrePedido(row.pedidoId) }}</td>
-        <td>{{ perfilDeLinea(row) }}</td>
-        <td>{{ nombreRecurso(row.recursoId) }}</td>
-        <td>{{ row.horasConsumidas | number: '1.0-2' }} h</td>
-        @if (esAdmin()) {
-          <td>
-            <p-button
-              icon="pi pi-trash"
-              size="small"
-              severity="danger"
-              [text]="true"
-              ariaLabel="Eliminar"
-              (onClick)="eliminar(row)"
-            ></p-button>
+    <div slot="actions">
+      <p-button
+        label="Registrar consumo"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </div>
+  </pre-page-header>
+
+  <pre-list-toolbar
+    slot="toolbar"
+    [mostrarSearch]="false"
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
+  >
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-select
+        [options]="opcionesPedido()"
+        optionLabel="label"
+        optionValue="id"
+        [ngModel]="pedidoFiltro()"
+        (ngModelChange)="onPedidoFiltroChange($any($event))"
+        placeholder="Pedido"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por pedido"
+      ></p-select>
+      <p-select
+        [options]="recursos()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="recursoFiltro()"
+        (ngModelChange)="onRecursoFiltroChange($any($event))"
+        placeholder="Recurso"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por recurso"
+      ></p-select>
+      <p-select
+        [options]="meses"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="mesFiltro()"
+        (ngModelChange)="onMesFiltroChange($any($event))"
+        placeholder="Mes"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por mes"
+      ></p-select>
+      <p-inputNumber
+        [ngModel]="anioFiltro()"
+        (ngModelChange)="onAnioFiltroChange($any($event))"
+        mode="decimal"
+        [useGrouping]="false"
+        [min]="2000"
+        [max]="2100"
+        placeholder="Año"
+        ariaLabel="Filtrar por año"
+        inputStyleClass="pre-lista__filter"
+      ></p-inputNumber>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los consumos"
+      [descripcion]="err"
+      (reintentar)="reintentarCarga()"
+    />
+  } @else if (cargando() && consumos().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (consumos().length === 0) {
+    <pre-empty-state
+      variante="primer-uso"
+      titulo="Aún no hay consumos registrados"
+      descripcion="Registra el primer consumo mensual para empezar a ver datos."
+    >
+      <p-button
+        label="Registrar consumo"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </pre-empty-state>
+  } @else if (consumosFiltrados().length === 0) {
+    <pre-empty-state
+      variante="sin-resultados"
+      titulo="Ningún consumo cumple los filtros"
+      descripcion="Ajusta o limpia los filtros para volver a verlos."
+    >
+      <p-button
+        label="Limpiar filtros"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="limpiarFiltros()"
+      ></p-button>
+    </pre-empty-state>
+  } @else {
+    <p-table
+      [value]="consumosFiltrados()"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      sortMode="single"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '60rem' }"
+      [styleClass]="'pre-lista__table is-' + densidad()"
+      (onPage)="onFilasChange($any($event).rows)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="anio" style="width: 6rem">
+            Año <p-sortIcon field="anio"></p-sortIcon>
+          </th>
+          <th pSortableColumn="mes" style="width: 5rem">
+            Mes <p-sortIcon field="mes"></p-sortIcon>
+          </th>
+          <th>Pedido</th>
+          <th>Perfil</th>
+          <th>Recurso</th>
+          <th pSortableColumn="horasConsumidas" style="width: 7rem">
+            Horas <p-sortIcon field="horasConsumidas"></p-sortIcon>
+          </th>
+          <th *preIfRol="Rol.Admin" style="width: 5rem"></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr
+          class="pre-lista__row"
+          (click)="onRowClick(row)"
+          tabindex="0"
+          (keydown.enter)="onRowClick(row)"
+        >
+          <td>{{ row.anio }}</td>
+          <td>{{ row.mes }}</td>
+          <td>{{ nombrePedido(row.pedidoId) }}</td>
+          <td>{{ perfilDeLinea(row) }}</td>
+          <td>{{ nombreRecurso(row.recursoId) }}</td>
+          <td>{{ row.horasConsumidas | number: '1.0-2' }} h</td>
+          <td *preIfRol="Rol.Admin" (click)="$event.stopPropagation()">
+            <div class="pre-lista__actions">
+              <p-button
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                [text]="true"
+                ariaLabel="Eliminar"
+                (onClick)="eliminar(row)"
+              ></p-button>
+            </div>
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="esAdmin() ? 7 : 6" class="text-center text-slate-500">
-          Sin consumos registrados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
 
 <p-dialog
   [visible]="dialogVisible()"

@@ -1,56 +1,130 @@
-<p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="mx-auto max-w-5xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Servicios</h1>
-    @if (esAdmin()) {
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Servicios"
+    descripcion="Tarifas por proveedor y perfil técnico que se aplican a las líneas de pedido."
+  >
+    <div slot="actions">
       <p-button
+        *preIfRol="Rol.Admin"
         label="Nuevo servicio"
         icon="pi pi-plus"
         (onClick)="abrirCrear()"
       ></p-button>
-    }
-  </div>
+    </div>
+  </pre-page-header>
 
-  <p-table
-    [value]="servicios()"
-    [paginator]="true"
-    [rows]="10"
-    [rowsPerPageOptions]="[10, 25, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    dataKey="id"
-    [tableStyle]="{ 'min-width': '48rem' }"
+  <pre-list-toolbar
+    slot="toolbar"
+    [mostrarSearch]="false"
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
   >
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="id" style="width: 5rem">
-          ID <p-sortIcon field="id"></p-sortIcon>
-        </th>
-        <th pSortableColumn="proveedorId">
-          Proveedor <p-sortIcon field="proveedorId"></p-sortIcon>
-        </th>
-        <th pSortableColumn="perfilTecnicoId">
-          Perfil técnico <p-sortIcon field="perfilTecnicoId"></p-sortIcon>
-        </th>
-        <th pSortableColumn="tarifaPorHora" style="width: 9rem">
-          Tarifa €/h <p-sortIcon field="tarifaPorHora"></p-sortIcon>
-        </th>
-        @if (esAdmin()) {
-          <th style="width: 9rem">Acciones</th>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>{{ row.id }}</td>
-        <td>{{ nombreProveedor(row.proveedorId) }}</td>
-        <td>{{ nombrePerfil(row.perfilTecnicoId) }}</td>
-        <td>{{ row.tarifaPorHora | number: '1.2-2' }}</td>
-        @if (esAdmin()) {
-          <td>
-            <div class="flex gap-2">
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-select
+        [options]="proveedores()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="proveedorFiltro()"
+        (ngModelChange)="onProveedorChange($any($event))"
+        placeholder="Proveedor"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por proveedor"
+      ></p-select>
+      <p-select
+        [options]="perfiles()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="perfilFiltro()"
+        (ngModelChange)="onPerfilChange($any($event))"
+        placeholder="Perfil técnico"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por perfil técnico"
+      ></p-select>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los servicios"
+      [descripcion]="err"
+      (reintentar)="reintentarCarga()"
+    />
+  } @else if (cargando() && servicios().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (servicios().length === 0) {
+    <pre-empty-state
+      variante="primer-uso"
+      titulo="Aún no hay servicios"
+      descripcion="Cuando crees el primer servicio aparecerá aquí."
+    >
+      <p-button
+        *preIfRol="Rol.Admin"
+        label="Nuevo servicio"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </pre-empty-state>
+  } @else if (serviciosFiltrados().length === 0) {
+    <pre-empty-state
+      variante="sin-resultados"
+      titulo="Ningún servicio cumple los filtros"
+      descripcion="Ajusta o limpia los filtros para volver a verlos."
+    >
+      <p-button
+        label="Limpiar filtros"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="limpiarFiltros()"
+      ></p-button>
+    </pre-empty-state>
+  } @else {
+    <p-table
+      [value]="serviciosFiltrados()"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      sortMode="single"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '48rem' }"
+      [styleClass]="'pre-lista__table is-' + densidad()"
+      (onPage)="onFilasChange($any($event).rows)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="id" style="width: 5rem">
+            ID <p-sortIcon field="id"></p-sortIcon>
+          </th>
+          <th pSortableColumn="proveedorId">
+            Proveedor <p-sortIcon field="proveedorId"></p-sortIcon>
+          </th>
+          <th pSortableColumn="perfilTecnicoId">
+            Perfil técnico <p-sortIcon field="perfilTecnicoId"></p-sortIcon>
+          </th>
+          <th pSortableColumn="tarifaPorHora" style="width: 9rem">
+            Tarifa €/h <p-sortIcon field="tarifaPorHora"></p-sortIcon>
+          </th>
+          <th *preIfRol="Rol.Admin" style="width: 9rem">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr class="pre-lista__row">
+          <td>{{ row.id }}</td>
+          <td>{{ nombreProveedor(row.proveedorId) }}</td>
+          <td>{{ nombrePerfil(row.perfilTecnicoId) }}</td>
+          <td>{{ row.tarifaPorHora | number: '1.2-2' }}</td>
+          <td *preIfRol="Rol.Admin" (click)="$event.stopPropagation()">
+            <div class="pre-lista__actions">
               <p-button
                 icon="pi pi-pencil"
                 size="small"
@@ -69,18 +143,11 @@
               ></p-button>
             </div>
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="esAdmin() ? 5 : 4" class="text-center text-slate-500">
-          Sin servicios registrados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
 
 <p-dialog
   [visible]="dialogVisible()"

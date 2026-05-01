@@ -1,48 +1,103 @@
-<p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="mx-auto max-w-5xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Proveedores</h1>
-    @if (esAdmin()) {
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Proveedores"
+    descripcion="Gestiona los proveedores con los que se contratan los pedidos."
+  >
+    <div slot="actions">
       <p-button
+        *preIfRol="Rol.Admin"
         label="Nuevo proveedor"
         icon="pi pi-plus"
         (onClick)="abrirCrear()"
       ></p-button>
-    }
-  </div>
+    </div>
+  </pre-page-header>
 
-  <p-table
-    [value]="proveedores()"
-    [paginator]="true"
-    [rows]="10"
-    [rowsPerPageOptions]="[10, 25, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    dataKey="id"
-    [tableStyle]="{ 'min-width': '40rem' }"
-  >
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="id" style="width: 5rem">
-          ID <p-sortIcon field="id"></p-sortIcon>
-        </th>
-        <th pSortableColumn="nombre">
-          Nombre <p-sortIcon field="nombre"></p-sortIcon>
-        </th>
-        @if (esAdmin()) {
-          <th style="width: 9rem">Acciones</th>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>{{ row.id }}</td>
-        <td>{{ row.nombre }}</td>
-        @if (esAdmin()) {
-          <td>
-            <div class="flex gap-2">
+  <pre-list-toolbar
+    slot="toolbar"
+    [query]="q()"
+    placeholder="Buscar por nombre..."
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (queryChange)="onQueryChange($event)"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
+  ></pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los proveedores"
+      [descripcion]="err"
+      (reintentar)="reintentarCarga()"
+    />
+  } @else if (cargando() && proveedores().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (proveedores().length === 0) {
+    <pre-empty-state
+      variante="primer-uso"
+      titulo="Aún no hay proveedores"
+      descripcion="Cuando crees el primer proveedor aparecerá aquí."
+    >
+      <p-button
+        *preIfRol="Rol.Admin"
+        label="Nuevo proveedor"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </pre-empty-state>
+  } @else if (proveedoresFiltrados().length === 0) {
+    <pre-empty-state
+      variante="sin-resultados"
+      titulo="Ningún proveedor cumple los filtros"
+      descripcion="Ajusta o limpia los filtros para volver a verlos."
+    >
+      <p-button
+        label="Limpiar filtros"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="limpiarFiltros()"
+      ></p-button>
+    </pre-empty-state>
+  } @else {
+    <p-table
+      [value]="proveedoresFiltrados()"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      sortMode="single"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '40rem' }"
+      [styleClass]="'pre-lista__table is-' + densidad()"
+      (onPage)="onFilasChange($any($event).rows)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="id" style="width: 5rem">
+            ID <p-sortIcon field="id"></p-sortIcon>
+          </th>
+          <th pSortableColumn="nombre">
+            Nombre <p-sortIcon field="nombre"></p-sortIcon>
+          </th>
+          <th *preIfRol="Rol.Admin" style="width: 9rem">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr class="pre-lista__row">
+          <td>{{ row.id }}</td>
+          <td (click)="$event.stopPropagation()">
+            <pre-inline-edit
+              [valor]="row.nombre"
+              [editable]="true"
+              (guardar)="guardarInline(row, $event)"
+            />
+          </td>
+          <td *preIfRol="Rol.Admin" (click)="$event.stopPropagation()">
+            <div class="pre-lista__actions">
               <p-button
                 icon="pi pi-pencil"
                 size="small"
@@ -61,18 +116,11 @@
               ></p-button>
             </div>
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="esAdmin() ? 3 : 2" class="text-center text-slate-500">
-          Sin proveedores registrados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
 
 <p-dialog
   [visible]="dialogVisible()"

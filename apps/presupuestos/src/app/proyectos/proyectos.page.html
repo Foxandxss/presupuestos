@@ -1,75 +1,137 @@
-<p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="mx-auto max-w-6xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Proyectos</h1>
-    @if (esAdmin()) {
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Proyectos"
+    descripcion="Proyectos con estimaciones por perfil técnico."
+  >
+    <div slot="actions">
       <p-button
+        *preIfRol="Rol.Admin"
         label="Nuevo proyecto"
         icon="pi pi-plus"
         (onClick)="abrirCrear()"
       ></p-button>
-    }
-  </div>
+    </div>
+  </pre-page-header>
 
-  <p-table
-    [value]="proyectos()"
-    [paginator]="true"
-    [rows]="10"
-    [rowsPerPageOptions]="[10, 25, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    dataKey="id"
-    [tableStyle]="{ 'min-width': '60rem' }"
+  <pre-list-toolbar
+    slot="toolbar"
+    [query]="q()"
+    placeholder="Buscar por nombre..."
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (queryChange)="onQueryChange($event)"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
   >
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="id" style="width: 5rem">
-          ID <p-sortIcon field="id"></p-sortIcon>
-        </th>
-        <th pSortableColumn="nombre">
-          Nombre <p-sortIcon field="nombre"></p-sortIcon>
-        </th>
-        <th pSortableColumn="fechaInicio" style="width: 9rem">
-          Inicio <p-sortIcon field="fechaInicio"></p-sortIcon>
-        </th>
-        <th pSortableColumn="fechaFin" style="width: 9rem">
-          Fin <p-sortIcon field="fechaFin"></p-sortIcon>
-        </th>
-        <th style="width: 11rem">Horas estimadas</th>
-        @if (esAdmin()) {
-          <th style="width: 9rem">Acciones</th>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>{{ row.id }}</td>
-        <td>
-          <div class="font-medium">{{ row.nombre }}</div>
-          @if (row.descripcion) {
-            <div class="text-xs text-slate-500">{{ row.descripcion }}</div>
-          }
-        </td>
-        <td>{{ row.fechaInicio }}</td>
-        <td>{{ row.fechaFin ?? '—' }}</td>
-        <td>
-          <div>
-            <strong>{{ totalHorasEstimadas(row) | number: '1.0-2' }}</strong>
-            <span class="text-xs text-slate-500"> ({{ row.estimaciones.length }} perfiles)</span>
-          </div>
-          @if (row.estimaciones.length > 0) {
-            <ul class="text-xs text-slate-600 mt-1 list-disc list-inside">
-              @for (est of row.estimaciones; track est.id) {
-                <li>{{ nombrePerfil(est.perfilTecnicoId) }}: {{ est.horasEstimadas | number: '1.0-2' }} h</li>
-              }
-            </ul>
-          }
-        </td>
-        @if (esAdmin()) {
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-select
+        [options]="estadoOpciones"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="estadoFiltro()"
+        (ngModelChange)="onEstadoChange($any($event))"
+        placeholder="Estado"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por estado"
+      ></p-select>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los proyectos"
+      [descripcion]="err"
+      (reintentar)="reintentarCarga()"
+    />
+  } @else if (cargando() && proyectos().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (proyectos().length === 0) {
+    <pre-empty-state
+      variante="primer-uso"
+      titulo="Aún no hay proyectos"
+      descripcion="Cuando crees el primer proyecto aparecerá aquí."
+    >
+      <p-button
+        *preIfRol="Rol.Admin"
+        label="Nuevo proyecto"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </pre-empty-state>
+  } @else if (proyectosFiltrados().length === 0) {
+    <pre-empty-state
+      variante="sin-resultados"
+      titulo="Ningún proyecto cumple los filtros"
+      descripcion="Ajusta o limpia los filtros para volver a verlos."
+    >
+      <p-button
+        label="Limpiar filtros"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="limpiarFiltros()"
+      ></p-button>
+    </pre-empty-state>
+  } @else {
+    <p-table
+      [value]="proyectosFiltrados()"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      sortMode="single"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '60rem' }"
+      [styleClass]="'pre-lista__table is-' + densidad()"
+      (onPage)="onFilasChange($any($event).rows)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="id" style="width: 5rem">
+            ID <p-sortIcon field="id"></p-sortIcon>
+          </th>
+          <th pSortableColumn="nombre">
+            Nombre <p-sortIcon field="nombre"></p-sortIcon>
+          </th>
+          <th pSortableColumn="fechaInicio" style="width: 9rem">
+            Inicio <p-sortIcon field="fechaInicio"></p-sortIcon>
+          </th>
+          <th pSortableColumn="fechaFin" style="width: 9rem">
+            Fin <p-sortIcon field="fechaFin"></p-sortIcon>
+          </th>
+          <th style="width: 11rem">Horas estimadas</th>
+          <th *preIfRol="Rol.Admin" style="width: 9rem">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr
+          class="pre-lista__row"
+          (click)="onRowClick(row)"
+          tabindex="0"
+          (keydown.enter)="onRowClick(row)"
+        >
+          <td>{{ row.id }}</td>
           <td>
-            <div class="flex gap-2">
+            <div class="font-medium">{{ row.nombre }}</div>
+            @if (row.descripcion) {
+              <div class="text-xs text-slate-500">{{ row.descripcion }}</div>
+            }
+          </td>
+          <td>{{ row.fechaInicio }}</td>
+          <td>{{ row.fechaFin ?? '—' }}</td>
+          <td>
+            <div>
+              <strong>{{ totalHorasEstimadas(row) | number: '1.0-2' }}</strong>
+              <span class="text-xs text-slate-500"> ({{ row.estimaciones.length }} perfiles)</span>
+            </div>
+          </td>
+          <td *preIfRol="Rol.Admin" (click)="$event.stopPropagation()">
+            <div class="pre-lista__actions">
               <p-button
                 icon="pi pi-pencil"
                 size="small"
@@ -88,18 +150,11 @@
               ></p-button>
             </div>
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="esAdmin() ? 6 : 5" class="text-center text-slate-500">
-          Sin proyectos registrados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
 
 <p-dialog
   [visible]="dialogVisible()"

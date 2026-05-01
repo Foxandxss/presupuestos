@@ -4,15 +4,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -21,10 +25,21 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
-import { AuthService } from '../auth/auth.service';
+import { Rol } from '@operaciones/dominio';
+import { mapearErrorACopy } from '@operaciones/ui/errores';
+import {
+  type DensidadLista,
+  EmptyStateComponent,
+  ErrorStateComponent,
+  ListPageComponent,
+  ListToolbarComponent,
+  LoadingStateComponent,
+} from '@operaciones/ui/listado';
+import { PageHeaderComponent } from '@operaciones/ui/shell';
+
+import { PreIfRolDirective } from '../auth/pre-if-rol.directive';
 import {
   PerfilesTecnicosApi,
   ProveedoresApi,
@@ -35,11 +50,18 @@ import type {
   Proveedor,
   Recurso,
 } from '../catalogo/catalogo.types';
+import {
+  leerDensidadInicial,
+  leerFilasInicial,
+  persistirDensidad,
+  persistirFilas,
+} from '../listado-prefs';
 import { PedidosApi } from '../pedidos/pedidos.api';
 import type { LineaPedido, Pedido } from '../pedidos/pedidos.types';
-import { mapearErrorACopy } from '@operaciones/ui/errores';
 import { ConsumosApi } from './consumos.api';
 import type { Consumo, CrearConsumo } from './consumos.types';
+
+const SECCION = 'consumos';
 
 const ESTADOS_PEDIDO_CONSUMIBLES = new Set<Pedido['estado']>([
   'Aprobado',
@@ -82,6 +104,7 @@ const MESES = [
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TableModule,
     DialogModule,
@@ -89,11 +112,18 @@ const MESES = [
     InputNumberModule,
     SelectModule,
     TagModule,
-    ToastModule,
     ConfirmDialogModule,
+    ListPageComponent,
+    ListToolbarComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    LoadingStateComponent,
+    PageHeaderComponent,
+    PreIfRolDirective,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   templateUrl: './consumos.page.html',
+  styleUrl: '../lista-base.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConsumosPage {
@@ -103,20 +133,25 @@ export class ConsumosPage {
   private readonly proveedoresApi = inject(ProveedoresApi);
   private readonly perfilesApi = inject(PerfilesTecnicosApi);
   private readonly fb = inject(FormBuilder);
-  private readonly auth = inject(AuthService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
+  protected readonly Rol = Rol;
   protected readonly meses = MESES;
-  protected readonly esAdmin = computed(() => this.auth.rol() === 'admin');
   protected readonly consumos = signal<Consumo[]>([]);
   protected readonly pedidos = signal<Pedido[]>([]);
   protected readonly recursos = signal<Recurso[]>([]);
   protected readonly proveedores = signal<Proveedor[]>([]);
   protected readonly perfiles = signal<PerfilTecnico[]>([]);
   protected readonly cargando = signal(false);
+  protected readonly errorCarga = signal<string | null>(null);
   protected readonly dialogVisible = signal(false);
   protected readonly pedidoIdSeleccionado = signal<number | null>(null);
+
+  protected readonly densidad = signal<DensidadLista>(leerDensidadInicial(SECCION));
+  protected readonly filasPorPagina = signal<number>(leerFilasInicial(SECCION));
 
   protected readonly pedidosPorId = computed(() => {
     const map = new Map<number, Pedido>();
@@ -178,6 +213,61 @@ export class ConsumosPage {
     return this.recursos().filter((r) => r.proveedorId === pedido.proveedorId);
   });
 
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+
+  protected readonly pedidoFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('pedido');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) ? n : null;
+  });
+  protected readonly recursoFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('recurso');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) ? n : null;
+  });
+  protected readonly mesFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('mes');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) && n >= 1 && n <= 12 ? n : null;
+  });
+  protected readonly anioFiltro = computed<number | null>(() => {
+    const raw = this.queryParams().get('anio');
+    const n = raw ? Number(raw) : null;
+    return n && Number.isFinite(n) ? n : null;
+  });
+
+  protected readonly hayFiltrosActivos = computed(
+    () =>
+      this.pedidoFiltro() !== null ||
+      this.recursoFiltro() !== null ||
+      this.mesFiltro() !== null ||
+      this.anioFiltro() !== null,
+  );
+
+  protected readonly consumosFiltrados = computed(() => {
+    const lista = this.consumos();
+    const pedidoId = this.pedidoFiltro();
+    const recursoId = this.recursoFiltro();
+    const mes = this.mesFiltro();
+    const anio = this.anioFiltro();
+    return lista.filter((c) => {
+      if (pedidoId !== null && c.pedidoId !== pedidoId) return false;
+      if (recursoId !== null && c.recursoId !== recursoId) return false;
+      if (mes !== null && c.mes !== mes) return false;
+      if (anio !== null && c.anio !== anio) return false;
+      return true;
+    });
+  });
+
+  protected readonly resumen = computed(() => {
+    const total = this.consumos().length;
+    const visibles = this.consumosFiltrados().length;
+    if (total === 0 || !this.hayFiltrosActivos()) return null;
+    return `Mostrando ${visibles} de ${total}`;
+  });
+
   protected readonly form: FormGroup = this.fb.group({
     pedidoId: [null as number | null, [Validators.required]],
     lineaPedidoId: [null as number | null, [Validators.required]],
@@ -199,6 +289,8 @@ export class ConsumosPage {
       this.pedidoIdSeleccionado.set(id);
       this.form.patchValue({ lineaPedidoId: null, recursoId: null });
     });
+    effect(() => persistirDensidad(SECCION, this.densidad()));
+    effect(() => persistirFilas(SECCION, this.filasPorPagina()));
   }
 
   nombrePedido(id: number): string {
@@ -220,8 +312,56 @@ export class ConsumosPage {
     return this.perfilesPorId().get(linea.perfilTecnicoId) ?? '?';
   }
 
+  protected onPedidoFiltroChange(valor: number | null): void {
+    this.actualizarParam('pedido', valor ? String(valor) : null);
+  }
+  protected onRecursoFiltroChange(valor: number | null): void {
+    this.actualizarParam('recurso', valor ? String(valor) : null);
+  }
+  protected onMesFiltroChange(valor: number | null): void {
+    this.actualizarParam('mes', valor ? String(valor) : null);
+  }
+  protected onAnioFiltroChange(valor: number | null): void {
+    this.actualizarParam('anio', valor ? String(valor) : null);
+  }
+
+  protected limpiarFiltros(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'replace',
+    });
+  }
+
+  protected onDensidadChange(d: DensidadLista): void {
+    this.densidad.set(d);
+  }
+
+  protected onFilasChange(filas: number): void {
+    this.filasPorPagina.set(filas);
+  }
+
+  protected reintentarCarga(): void {
+    this.cargar();
+  }
+
+  protected onRowClick(row: Consumo): void {
+    // Placeholder: el drawer de Consumo llega en #26. Mientras, no hace nada;
+    // las acciones de eliminación viven en la columna de acciones.
+    void row;
+  }
+
+  private actualizarParam(clave: string, valor: string | null): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [clave]: valor },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   private cargar(): void {
     this.cargando.set(true);
+    this.errorCarga.set(null);
     forkJoin({
       consumos: this.api.list(),
       pedidos: this.pedidosApi.list(),
@@ -239,11 +379,7 @@ export class ConsumosPage {
       },
       error: (err: HttpErrorResponse) => {
         this.cargando.set(false);
-        this.toast.add({
-          severity: 'error',
-          summary: 'Error al cargar',
-          detail: err.message,
-        });
+        this.errorCarga.set(extraerMensaje(err));
       },
     });
   }

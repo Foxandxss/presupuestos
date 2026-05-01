@@ -1,52 +1,122 @@
-<p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="mx-auto max-w-5xl">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold text-slate-800">Recursos</h1>
-    @if (esAdmin()) {
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Recursos"
+    descripcion="Gestiona los recursos contratables por proveedor."
+  >
+    <div slot="actions">
       <p-button
+        *preIfRol="Rol.Admin"
         label="Nuevo recurso"
         icon="pi pi-plus"
         (onClick)="abrirCrear()"
       ></p-button>
-    }
-  </div>
+    </div>
+  </pre-page-header>
 
-  <p-table
-    [value]="recursos()"
-    [paginator]="true"
-    [rows]="10"
-    [rowsPerPageOptions]="[10, 25, 50]"
-    [loading]="cargando()"
-    sortMode="single"
-    dataKey="id"
-    [tableStyle]="{ 'min-width': '40rem' }"
+  <pre-list-toolbar
+    slot="toolbar"
+    [query]="q()"
+    placeholder="Buscar por nombre..."
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (queryChange)="onQueryChange($event)"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
   >
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="id" style="width: 5rem">
-          ID <p-sortIcon field="id"></p-sortIcon>
-        </th>
-        <th pSortableColumn="nombre">
-          Nombre <p-sortIcon field="nombre"></p-sortIcon>
-        </th>
-        <th pSortableColumn="proveedorId">
-          Proveedor <p-sortIcon field="proveedorId"></p-sortIcon>
-        </th>
-        @if (esAdmin()) {
-          <th style="width: 9rem">Acciones</th>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td>{{ row.id }}</td>
-        <td>{{ row.nombre }}</td>
-        <td>{{ nombreProveedor(row.proveedorId) }}</td>
-        @if (esAdmin()) {
-          <td>
-            <div class="flex gap-2">
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-select
+        [options]="proveedores()"
+        optionLabel="nombre"
+        optionValue="id"
+        [ngModel]="proveedorFiltro()"
+        (ngModelChange)="onProveedorChange($any($event))"
+        placeholder="Proveedor"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por proveedor"
+      ></p-select>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los recursos"
+      [descripcion]="err"
+      (reintentar)="reintentarCarga()"
+    />
+  } @else if (cargando() && recursos().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (recursos().length === 0) {
+    <pre-empty-state
+      variante="primer-uso"
+      titulo="Aún no hay recursos"
+      descripcion="Cuando crees el primer recurso aparecerá aquí."
+    >
+      <p-button
+        *preIfRol="Rol.Admin"
+        label="Nuevo recurso"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </pre-empty-state>
+  } @else if (recursosFiltrados().length === 0) {
+    <pre-empty-state
+      variante="sin-resultados"
+      titulo="Ningún recurso cumple los filtros"
+      descripcion="Ajusta o limpia los filtros para volver a verlos."
+    >
+      <p-button
+        label="Limpiar filtros"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="limpiarFiltros()"
+      ></p-button>
+    </pre-empty-state>
+  } @else {
+    <p-table
+      [value]="recursosFiltrados()"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      sortMode="single"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '40rem' }"
+      [styleClass]="'pre-lista__table is-' + densidad()"
+      (onPage)="onFilasChange($any($event).rows)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="id" style="width: 5rem">
+            ID <p-sortIcon field="id"></p-sortIcon>
+          </th>
+          <th pSortableColumn="nombre">
+            Nombre <p-sortIcon field="nombre"></p-sortIcon>
+          </th>
+          <th pSortableColumn="proveedorId">
+            Proveedor <p-sortIcon field="proveedorId"></p-sortIcon>
+          </th>
+          <th *preIfRol="Rol.Admin" style="width: 9rem">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr class="pre-lista__row">
+          <td>{{ row.id }}</td>
+          <td (click)="$event.stopPropagation()">
+            <pre-inline-edit
+              [valor]="row.nombre"
+              [editable]="true"
+              (guardar)="guardarInline(row, $event)"
+            />
+          </td>
+          <td>{{ nombreProveedor(row.proveedorId) }}</td>
+          <td *preIfRol="Rol.Admin" (click)="$event.stopPropagation()">
+            <div class="pre-lista__actions">
               <p-button
                 icon="pi pi-pencil"
                 size="small"
@@ -65,18 +135,11 @@
               ></p-button>
             </div>
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="esAdmin() ? 4 : 3" class="text-center text-slate-500">
-          Sin recursos registrados.
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
 
 <p-dialog
   [visible]="dialogVisible()"

@@ -4,16 +4,20 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -24,12 +28,28 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TextareaModule } from 'primeng/textarea';
-import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
-import { AuthService } from '../auth/auth.service';
+import { Rol } from '@operaciones/dominio';
+import {
+  type DensidadLista,
+  EmptyStateComponent,
+  ErrorStateComponent,
+  ListPageComponent,
+  ListToolbarComponent,
+  LoadingStateComponent,
+} from '@operaciones/ui/listado';
+import { PageHeaderComponent } from '@operaciones/ui/shell';
+
+import { PreIfRolDirective } from '../auth/pre-if-rol.directive';
 import { PerfilesTecnicosApi } from '../catalogo/catalogo.api';
 import type { PerfilTecnico } from '../catalogo/catalogo.types';
+import {
+  leerDensidadInicial,
+  leerFilasInicial,
+  persistirDensidad,
+  persistirFilas,
+} from '../listado-prefs';
 import { ProyectosApi } from './proyectos.api';
 import type {
   CrearEstimacion,
@@ -38,11 +58,20 @@ import type {
   Proyecto,
 } from './proyectos.types';
 
+const SECCION = 'proyectos';
+type EstadoProyecto = 'activo' | 'cerrado';
+
+const ESTADO_OPCIONES: { label: string; value: EstadoProyecto }[] = [
+  { label: 'Activo', value: 'activo' },
+  { label: 'Cerrado', value: 'cerrado' },
+];
+
 @Component({
   selector: 'app-proyectos',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TableModule,
     DialogModule,
@@ -52,34 +81,85 @@ import type {
     TextareaModule,
     DatePickerModule,
     SelectModule,
-    ToastModule,
     ConfirmDialogModule,
+    ListPageComponent,
+    ListToolbarComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    LoadingStateComponent,
+    PageHeaderComponent,
+    PreIfRolDirective,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   templateUrl: './proyectos.page.html',
+  styleUrl: '../lista-base.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProyectosPage {
   private readonly api = inject(ProyectosApi);
   private readonly perfilesApi = inject(PerfilesTecnicosApi);
   private readonly fb = inject(FormBuilder);
-  private readonly auth = inject(AuthService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  protected readonly esAdmin = computed(() => this.auth.rol() === 'admin');
+  protected readonly Rol = Rol;
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly perfiles = signal<PerfilTecnico[]>([]);
   protected readonly cargando = signal(false);
+  protected readonly errorCarga = signal<string | null>(null);
   protected readonly dialogVisible = signal(false);
   protected readonly editandoId = signal<number | null>(null);
 
+  protected readonly densidad = signal<DensidadLista>(leerDensidadInicial(SECCION));
+  protected readonly filasPorPagina = signal<number>(leerFilasInicial(SECCION));
+
+  protected readonly estadoOpciones = ESTADO_OPCIONES;
+
   protected readonly perfilesPorId = computed(() => {
     const map = new Map<number, string>();
-    for (const p of this.perfiles()) {
-      map.set(p.id, p.nombre);
-    }
+    for (const p of this.perfiles()) map.set(p.id, p.nombre);
     return map;
+  });
+
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+
+  protected readonly q = computed(() => this.queryParams().get('q') ?? '');
+  protected readonly estadoFiltro = computed<EstadoProyecto | null>(() => {
+    const raw = this.queryParams().get('estado');
+    return raw === 'activo' || raw === 'cerrado' ? raw : null;
+  });
+
+  protected readonly hayFiltrosActivos = computed(
+    () => this.q().length > 0 || this.estadoFiltro() !== null,
+  );
+
+  protected readonly proyectosFiltrados = computed(() => {
+    const lista = this.proyectos();
+    const query = this.q().trim().toLowerCase();
+    const estado = this.estadoFiltro();
+    const hoy = formatISODate(new Date());
+    return lista.filter((p) => {
+      if (estado !== null) {
+        const estaActivo = !p.fechaFin || p.fechaFin > hoy;
+        if (estado === 'activo' && !estaActivo) return false;
+        if (estado === 'cerrado' && estaActivo) return false;
+      }
+      if (query.length > 0 && !p.nombre.toLowerCase().includes(query)) {
+        return false;
+      }
+      return true;
+    });
+  });
+
+  protected readonly resumen = computed(() => {
+    const total = this.proyectos().length;
+    const visibles = this.proyectosFiltrados().length;
+    if (total === 0 || !this.hayFiltrosActivos()) return null;
+    return `Mostrando ${visibles} de ${total}`;
   });
 
   protected readonly form: FormGroup = this.fb.group({
@@ -92,6 +172,8 @@ export class ProyectosPage {
 
   constructor() {
     this.cargar();
+    effect(() => persistirDensidad(SECCION, this.densidad()));
+    effect(() => persistirFilas(SECCION, this.filasPorPagina()));
   }
 
   get estimacionesArray(): FormArray {
@@ -106,8 +188,56 @@ export class ProyectosPage {
     return p.estimaciones.reduce((acc, e) => acc + e.horasEstimadas, 0);
   }
 
+  estaActivo(p: Proyecto): boolean {
+    if (!p.fechaFin) return true;
+    return p.fechaFin > formatISODate(new Date());
+  }
+
+  protected onQueryChange(valor: string): void {
+    this.actualizarParam('q', valor.trim() || null);
+  }
+
+  protected onEstadoChange(valor: EstadoProyecto | null): void {
+    this.actualizarParam('estado', valor ?? null);
+  }
+
+  protected limpiarFiltros(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'replace',
+    });
+  }
+
+  protected onDensidadChange(d: DensidadLista): void {
+    this.densidad.set(d);
+  }
+
+  protected onFilasChange(filas: number): void {
+    this.filasPorPagina.set(filas);
+  }
+
+  protected reintentarCarga(): void {
+    this.cargar();
+  }
+
+  protected onRowClick(row: Proyecto): void {
+    // Placeholder: la detail page /proyectos/:id llega en #30. Mientras,
+    // abrir el modal de edición existente.
+    this.abrirEditar(row);
+  }
+
+  private actualizarParam(clave: string, valor: string | null): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [clave]: valor },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   private cargar(): void {
     this.cargando.set(true);
+    this.errorCarga.set(null);
     forkJoin({
       proyectos: this.api.list(),
       perfiles: this.perfilesApi.list(),
@@ -119,11 +249,7 @@ export class ProyectosPage {
       },
       error: (err: HttpErrorResponse) => {
         this.cargando.set(false);
-        this.toast.add({
-          severity: 'error',
-          summary: 'Error al cargar',
-          detail: err.message,
-        });
+        this.errorCarga.set(extraerMensaje(err));
       },
     });
   }
