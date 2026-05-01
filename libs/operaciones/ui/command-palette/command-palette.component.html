@@ -1,0 +1,169 @@
+@if (abierto()) {
+  <div
+    class="pre-palette__backdrop"
+    role="presentation"
+    (click)="onBackdropClick($event)"
+  >
+    <div
+      class="pre-palette"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Búsqueda y comandos"
+    >
+      <div class="pre-palette__input-row">
+        <lucide-angular
+          [img]="icono.buscar"
+          size="16"
+          class="pre-palette__input-icon"
+          aria-hidden="true"
+        />
+        <input
+          #inputBuscar
+          type="text"
+          class="pre-palette__input"
+          placeholder="Buscar pedidos, proyectos, proveedores…"
+          aria-label="Buscar"
+          autocomplete="off"
+          spellcheck="false"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryChange($event)"
+        />
+        <span class="pre-palette__esc" aria-hidden="true">Esc</span>
+      </div>
+
+      <div class="pre-palette__body">
+        @if (tieneQuery() && cargando()) {
+          <div class="pre-palette__loading">
+            <lucide-angular [img]="icono.cargando" size="14" class="pre-palette__spinner" />
+            <span>Buscando…</span>
+          </div>
+        }
+
+        @if (tieneQuery() && !cargando() && !hayResultados()) {
+          <div class="pre-palette__empty">
+            <lucide-angular [img]="icono.vacioFiltros" size="20" />
+            <span>Sin resultados para «{{ query() }}»</span>
+          </div>
+        }
+
+        @if (tieneQuery() && itemsPedido().length > 0) {
+          <div class="pre-palette__group">
+            <div class="pre-palette__group-label">Pedidos</div>
+            @for (item of itemsPedido(); track item.id) {
+              <button
+                type="button"
+                class="pre-palette__item"
+                [class.is-active]="esActivo(item)"
+                (click)="seleccionar(item)"
+                (mouseenter)="indiceActivo.set(indiceDe(item))"
+              >
+                <lucide-angular [img]="icono.pedidos" size="14" class="pre-palette__item-icon" />
+                <span class="pre-palette__item-text">
+                  <span class="pre-palette__item-title">#{{ item.id }} · {{ item.proyectoNombre }}</span>
+                  <span class="pre-palette__item-sub">{{ item.proveedorNombre }}</span>
+                </span>
+                <lucide-angular [img]="icono.expandir" size="12" class="pre-palette__item-chev" />
+              </button>
+            }
+          </div>
+        }
+
+        @if (tieneQuery() && itemsProyecto().length > 0) {
+          <div class="pre-palette__group">
+            <div class="pre-palette__group-label">Proyectos</div>
+            @for (item of itemsProyecto(); track item.id) {
+              <button
+                type="button"
+                class="pre-palette__item"
+                [class.is-active]="esActivo(item)"
+                (click)="seleccionar(item)"
+                (mouseenter)="indiceActivo.set(indiceDe(item))"
+              >
+                <lucide-angular [img]="icono.proyectos" size="14" class="pre-palette__item-icon" />
+                <span class="pre-palette__item-text">
+                  <span class="pre-palette__item-title">{{ item.nombre }}</span>
+                </span>
+                <lucide-angular [img]="icono.expandir" size="12" class="pre-palette__item-chev" />
+              </button>
+            }
+          </div>
+        }
+
+        @if (tieneQuery() && itemsProveedor().length > 0) {
+          <div class="pre-palette__group">
+            <div class="pre-palette__group-label">Proveedores</div>
+            @for (item of itemsProveedor(); track item.id) {
+              <button
+                type="button"
+                class="pre-palette__item"
+                [class.is-active]="esActivo(item)"
+                (click)="seleccionar(item)"
+                (mouseenter)="indiceActivo.set(indiceDe(item))"
+              >
+                <lucide-angular [img]="icono.proveedores" size="14" class="pre-palette__item-icon" />
+                <span class="pre-palette__item-text">
+                  <span class="pre-palette__item-title">{{ item.nombre }}</span>
+                </span>
+                <lucide-angular [img]="icono.expandir" size="12" class="pre-palette__item-chev" />
+              </button>
+            }
+          </div>
+        }
+
+        @if (!tieneQuery() && itemsAccion().length > 0) {
+          <div class="pre-palette__group">
+            <div class="pre-palette__group-label">Acciones rápidas</div>
+            @for (item of itemsAccion(); track item.accionId) {
+              <button
+                type="button"
+                class="pre-palette__item"
+                [class.is-active]="esActivo(item)"
+                (click)="seleccionar(item)"
+                (mouseenter)="indiceActivo.set(indiceDe(item))"
+              >
+                <lucide-angular [img]="iconoItem(item.icono)" size="14" class="pre-palette__item-icon" />
+                <span class="pre-palette__item-text">
+                  <span class="pre-palette__item-title">{{ item.label }}</span>
+                </span>
+                <lucide-angular [img]="icono.expandir" size="12" class="pre-palette__item-chev" />
+              </button>
+            }
+          </div>
+        }
+
+        @if (!tieneQuery() && itemsNavegacion().length > 0) {
+          <div class="pre-palette__group">
+            <div class="pre-palette__group-label">Ir a</div>
+            @for (item of itemsNavegacion(); track item.ruta) {
+              <button
+                type="button"
+                class="pre-palette__item"
+                [class.is-active]="esActivo(item)"
+                (click)="seleccionar(item)"
+                (mouseenter)="indiceActivo.set(indiceDe(item))"
+              >
+                <lucide-angular [img]="iconoItem(item.icono)" size="14" class="pre-palette__item-icon" />
+                <span class="pre-palette__item-text">
+                  <span class="pre-palette__item-title">{{ item.label }}</span>
+                </span>
+                <lucide-angular [img]="icono.expandir" size="12" class="pre-palette__item-chev" />
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="pre-palette__footer">
+        <span class="pre-palette__hint">
+          <kbd>↑↓</kbd> navegar
+        </span>
+        <span class="pre-palette__hint">
+          <kbd>↵</kbd> seleccionar
+        </span>
+        <span class="pre-palette__hint">
+          <kbd>Esc</kbd> cerrar
+        </span>
+      </div>
+    </div>
+  </div>
+}

@@ -9,6 +9,7 @@ import { DbModule } from '../db/db.module';
 import { PedidosModule } from '../pedidos/pedidos.module';
 import { ProyectosModule } from '../proyectos/proyectos.module';
 import { ReportesModule } from '../reportes/reportes.module';
+import { SearchModule } from '../search/search.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -20,6 +21,7 @@ import { HealthController } from './health.controller';
     PedidosModule,
     ConsumosModule,
     ReportesModule,
+    SearchModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: FormateadorErrores }],

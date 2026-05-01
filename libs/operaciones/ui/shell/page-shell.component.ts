@@ -55,6 +55,7 @@ function leerColapsadoInicial(): boolean {
 export class PageShellComponent {
   readonly usuario = input.required<UsuarioShell>();
   readonly logout = output<void>();
+  readonly abrirBuscador = output<void>();
 
   private readonly router = inject(Router);
   private readonly hostRef = inject(ElementRef<HTMLElement>);
@@ -151,6 +152,18 @@ export class PageShellComponent {
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
     if (this.menuAbierto()) this.cerrarMenu();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  protected onKeydown(event: KeyboardEvent): void {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.abrirBuscador.emit();
+    }
+  }
+
+  protected onBuscadorClick(): void {
+    this.abrirBuscador.emit();
   }
 
   protected esItemInicioActivo(): boolean {

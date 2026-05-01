@@ -1,7 +1,17 @@
 @if (autenticado() && usuarioShell(); as u) {
-  <pre-page-shell [usuario]="u" (logout)="cerrarSesion()">
+  <pre-page-shell
+    [usuario]="u"
+    (logout)="cerrarSesion()"
+    (abrirBuscador)="abrirPalette()"
+  >
     <router-outlet />
   </pre-page-shell>
+  <pre-command-palette
+    [abierto]="paletteAbierto()"
+    [rol]="u.rol"
+    (cerrar)="cerrarPalette()"
+    (navegar)="navegarDesdePalette($event)"
+  />
 } @else {
   <router-outlet />
 }

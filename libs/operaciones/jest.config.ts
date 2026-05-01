@@ -16,6 +16,8 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'html'],
   moduleNameMapper: {
     '^@operaciones/dominio$': '<rootDir>/dominio/index.ts',
+    '^@operaciones/ui/command-palette$':
+      '<rootDir>/ui/command-palette/index.ts',
     '^@operaciones/ui/errores$': '<rootDir>/ui/errores/index.ts',
     '^@operaciones/ui/estados-pedido$':
       '<rootDir>/ui/estados-pedido/index.ts',
