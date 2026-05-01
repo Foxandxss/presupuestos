@@ -1,6 +1,7 @@
 import { createDatabase } from './connection';
 import { sembrarCatalogo } from './demo/catalogo';
 import { crearFaker } from './demo/faker';
+import { sembrarProyectos } from './demo/proyectos';
 import { sembrarUsuarios } from './demo/usuarios';
 import { wipeDatos } from './demo/wipe';
 
@@ -11,6 +12,7 @@ console.log(`[db:seed:demo] faker seed = ${semilla}`);
 
 wipeDatos(db);
 sembrarUsuarios(db);
-sembrarCatalogo(db, faker);
+const catalogo = sembrarCatalogo(db, faker);
+sembrarProyectos(db, faker, catalogo.perfilesIds);
 
 console.log('[db:seed:demo] OK');
