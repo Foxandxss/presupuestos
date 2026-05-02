@@ -6,6 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 
 import { CommandPaletteComponent } from '@operaciones/ui/command-palette';
@@ -16,7 +17,13 @@ import { AuthService } from './auth/auth.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, PageShellComponent, CommandPaletteComponent, ToastModule],
+  imports: [
+    RouterOutlet,
+    PageShellComponent,
+    CommandPaletteComponent,
+    ToastModule,
+    ConfirmDialogModule,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

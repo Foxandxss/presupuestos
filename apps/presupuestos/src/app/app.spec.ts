@@ -2,8 +2,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { providePrimeNG } from 'primeng/config';
 
 import { App } from './app';
 import { AuthService } from './auth/auth.service';
@@ -38,7 +40,10 @@ describe('App (shell)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter(routesStub),
+        provideAnimationsAsync(),
+        providePrimeNG({}),
         MessageService,
+        ConfirmationService,
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(App);

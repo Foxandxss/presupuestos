@@ -3,3 +3,4 @@ export {
   PreModalHeaderDirective,
   type PreModalSize,
 } from './pre-modal.component';
+export { PreConfirm, type PreConfirmOpciones } from './pre-confirm.service';

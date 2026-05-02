@@ -16,14 +16,13 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 
 import { Rol } from '@operaciones/dominio';
-import { ModalComponent } from '@operaciones/ui/dialogos';
+import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -56,7 +55,6 @@ const SECCION = 'proveedores';
     TableModule,
     ButtonModule,
     InputTextModule,
-    ConfirmDialogModule,
     ModalComponent,
     ListPageComponent,
     ListToolbarComponent,
@@ -67,7 +65,6 @@ const SECCION = 'proveedores';
     PageHeaderComponent,
     PreIfRolDirective,
   ],
-  providers: [ConfirmationService],
   templateUrl: './proveedores.page.html',
   styleUrl: '../lista-base.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,7 +73,7 @@ export class ProveedoresPage {
   private readonly api = inject(ProveedoresApi);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly confirm = inject(PreConfirm);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -231,30 +228,26 @@ export class ProveedoresPage {
     });
   }
 
-  eliminar(row: Proveedor): void {
-    this.confirm.confirm({
-      message: `¿Eliminar el proveedor "${row.nombre}"?`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Eliminar',
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => {
-        this.api.delete(row.id).subscribe({
-          next: () => {
-            this.toast.add({
-              severity: 'success',
-              summary: 'Proveedor eliminado',
-            });
-            this.cargar();
-          },
-          error: (err: HttpErrorResponse) => {
-            this.toast.add({
-              severity: 'error',
-              summary: 'No se pudo eliminar',
-              detail: extraerMensaje(err),
-            });
-          },
+  async eliminar(row: Proveedor): Promise<void> {
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar proveedor',
+      mensaje: `¿Eliminar el proveedor "${row.nombre}"? Esta acción es irreversible.`,
+      accionLabel: 'Eliminar proveedor',
+    });
+    if (!ok) return;
+    this.api.delete(row.id).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Proveedor eliminado',
+        });
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo eliminar',
+          detail: extraerMensaje(err),
         });
       },
     });
