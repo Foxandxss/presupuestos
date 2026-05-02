@@ -35,16 +35,22 @@ const KPIS_CONSULTOR: KpisConsultor = {
 
 const ACTIVIDAD_ITEMS: ActividadEvento[] = [
   {
-    tipo: 'pedido_aprobado',
+    tipo: 'pedido_transicion',
     fecha: '2026-04-30T12:00:00Z',
     descripcion: 'Pedido #142 aprobado.',
     recurso: { tipo: 'pedido', id: 142 },
+    accion: 'aprobar',
+    usuarioId: 1,
+    usuarioEmail: 'admin@demo.com',
   },
   {
     tipo: 'consumo_registrado',
     fecha: '2026-04-29T10:00:00Z',
     descripcion: 'Consumo de 40,00 h registrado en pedido #142 (Ada).',
     recurso: { tipo: 'consumo', id: 100 },
+    accion: null,
+    usuarioId: 7,
+    usuarioEmail: 'consultor@demo.com',
   },
 ];
 

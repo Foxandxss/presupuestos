@@ -6,13 +6,17 @@ import {
   IsISO8601,
   IsOptional,
   IsPositive,
+  IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 import type { Rol } from '@operaciones/dominio';
 
+import { ACCIONES_HISTORIAL_PEDIDO } from '../../db/schema';
+import type { AccionHistorialPedido } from '../../db/schema';
 import { TIPOS_ACTIVIDAD, type TipoActividad } from '../agregador-actividad';
 
 export class InicioKpisQuery {
@@ -102,6 +106,43 @@ export class ActividadQuery {
   @IsOptional()
   @IsISO8601({ strict: false })
   hasta?: string;
+
+  @ApiPropertyOptional({
+    description: 'Substring case-insensitive sobre la descripción.',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  q?: string;
+
+  @ApiPropertyOptional({ description: 'Filtra por usuarioId actor del evento.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  usuarioId?: number;
+
+  @ApiPropertyOptional({ description: 'Filtra eventos de un pedido concreto.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  pedidoId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filtra eventos de un proyecto (sólo aplica a proyecto_creado).',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  proyectoId?: number;
+
+  @ApiPropertyOptional({ enum: ['json', 'csv'], default: 'json' })
+  @IsOptional()
+  @IsIn(['json', 'csv'])
+  formato?: 'json' | 'csv';
 }
 
 function normalizarLista(value: unknown): unknown {
@@ -130,6 +171,20 @@ export class ActividadEventoDto {
 
   @ApiProperty({ type: ActividadRecursoDto })
   recurso!: ActividadRecursoDto;
+
+  @ApiProperty({
+    enum: ACCIONES_HISTORIAL_PEDIDO,
+    nullable: true,
+    description:
+      'Sub-acción cuando el evento viene de historial_pedido (pedido_transicion / consumo_eliminado). null en el resto.',
+  })
+  accion!: AccionHistorialPedido | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  usuarioId!: number | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  usuarioEmail!: string | null;
 }
 
 export class ActividadPaginaDto {

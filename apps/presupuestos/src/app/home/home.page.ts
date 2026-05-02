@@ -58,10 +58,10 @@ interface AccionRapida {
 
 const COLOR_POR_TIPO: Record<TipoActividad, string> = {
   pedido_creado: '#6366f1',
-  pedido_solicitado: '#f59e0b',
-  pedido_aprobado: '#0ea5e9',
-  pedido_actualizado: '#64748b',
+  pedido_transicion: '#0ea5e9',
   consumo_registrado: '#10b981',
+  consumo_eliminado: '#ef4444',
+  proyecto_creado: '#8b5cf6',
 };
 
 @Component({

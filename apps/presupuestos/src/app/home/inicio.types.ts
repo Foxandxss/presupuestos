@@ -15,19 +15,34 @@ export interface KpisConsultor {
 
 export const TIPOS_ACTIVIDAD = [
   'pedido_creado',
-  'pedido_solicitado',
-  'pedido_aprobado',
-  'pedido_actualizado',
+  'pedido_transicion',
   'consumo_registrado',
+  'consumo_eliminado',
+  'proyecto_creado',
 ] as const;
 
 export type TipoActividad = (typeof TIPOS_ACTIVIDAD)[number];
+
+export const ACCIONES_HISTORIAL_PEDIDO = [
+  'solicitar',
+  'aprobar',
+  'rechazar',
+  'cancelar',
+  'consumo_inicial',
+  'consumo_completo',
+  'consumo_borrado',
+] as const;
+
+export type AccionHistorialPedido = (typeof ACCIONES_HISTORIAL_PEDIDO)[number];
 
 export interface ActividadEvento {
   tipo: TipoActividad;
   fecha: string;
   descripcion: string;
   recurso: { tipo: 'pedido' | 'consumo' | 'proyecto'; id: number };
+  accion: AccionHistorialPedido | null;
+  usuarioId: number | null;
+  usuarioEmail: string | null;
 }
 
 export interface ActividadFiltros {
@@ -36,6 +51,10 @@ export interface ActividadFiltros {
   tipo?: readonly TipoActividad[];
   desde?: string;
   hasta?: string;
+  q?: string;
+  usuarioId?: number;
+  pedidoId?: number;
+  proyectoId?: number;
 }
 
 export interface ActividadPagina {

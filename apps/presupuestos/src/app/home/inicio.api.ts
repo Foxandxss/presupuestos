@@ -28,16 +28,36 @@ export class InicioApi {
   }
 
   actividad(filtros: ActividadFiltros = {}): Observable<ActividadPagina> {
-    let params = new HttpParams();
-    if (filtros.limit !== undefined)
-      params = params.set('limit', String(filtros.limit));
-    if (filtros.offset !== undefined)
-      params = params.set('offset', String(filtros.offset));
-    if (filtros.tipo && filtros.tipo.length > 0) {
-      params = params.set('tipo', filtros.tipo.join(','));
-    }
-    if (filtros.desde) params = params.set('desde', filtros.desde);
-    if (filtros.hasta) params = params.set('hasta', filtros.hasta);
-    return this.http.get<ActividadPagina>('/api/actividad', { params });
+    return this.http.get<ActividadPagina>('/api/actividad', {
+      params: paramsDe(filtros),
+    });
   }
+
+  actividadCsv(filtros: ActividadFiltros = {}): Observable<Blob> {
+    return this.http.get('/api/actividad', {
+      params: paramsDe(filtros).set('formato', 'csv'),
+      responseType: 'blob',
+    });
+  }
+}
+
+function paramsDe(filtros: ActividadFiltros): HttpParams {
+  let params = new HttpParams();
+  if (filtros.limit !== undefined)
+    params = params.set('limit', String(filtros.limit));
+  if (filtros.offset !== undefined)
+    params = params.set('offset', String(filtros.offset));
+  if (filtros.tipo && filtros.tipo.length > 0) {
+    params = params.set('tipo', filtros.tipo.join(','));
+  }
+  if (filtros.desde) params = params.set('desde', filtros.desde);
+  if (filtros.hasta) params = params.set('hasta', filtros.hasta);
+  if (filtros.q) params = params.set('q', filtros.q);
+  if (filtros.usuarioId !== undefined)
+    params = params.set('usuarioId', String(filtros.usuarioId));
+  if (filtros.pedidoId !== undefined)
+    params = params.set('pedidoId', String(filtros.pedidoId));
+  if (filtros.proyectoId !== undefined)
+    params = params.set('proyectoId', String(filtros.proyectoId));
+  return params;
 }

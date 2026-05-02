@@ -1,20 +1,25 @@
 // Deep module: union cronológica de eventos del sistema. Recibe arrays
-// hidratados de pedidos + consumos y emite un feed plano ordenado por
-// fecha desc, opcionalmente filtrado y paginado.
+// hidratados de pedidos + consumos + historial_pedido + proyectos y emite un
+// feed plano ordenado por fecha desc, opcionalmente filtrado y paginado.
 //
-// Las transiciones de pedido se aproximan con fechaSolicitud /
-// fechaAprobacion / updatedAt — slice 2 de #20 conectará historial_pedido
-// (#16) como fuente real.
+// Slice 2 de #20: las transiciones de pedido pasan a leerse de
+// historial_pedido (#16) en lugar de aproximarse con
+// fechaSolicitud/fechaAprobacion/updatedAt. Las acciones manuales
+// (solicitar/aprobar/rechazar/cancelar) se consolidan en `pedido_transicion`
+// con la sub-acción en el campo `accion`. Las auto-transiciones
+// `consumo_inicial` / `consumo_completo` se omiten del feed (son
+// redundantes con el evento `consumo_registrado` que las causa); la
+// auto-transición `consumo_borrado` se expone como `consumo_eliminado`
+// (única huella persistente del borrado, ya que consumos se hace hard
+// delete sobre la fila).
+
+import type { AccionHistorialPedido } from '../db/schema';
 
 export interface PedidoParaActividad {
   id: number;
-  estado: string;
   proyectoNombre: string;
   proveedorNombre: string;
   createdAt: string;
-  updatedAt: string;
-  fechaSolicitud: string | null;
-  fechaAprobacion: string | null;
 }
 
 export interface ConsumoParaActividad {
@@ -26,23 +31,60 @@ export interface ConsumoParaActividad {
   anio: number;
   horasConsumidas: number;
   createdAt: string;
+  usuarioId: number | null;
+  usuarioEmail: string | null;
+}
+
+// Fila histórica con metadatos del pedido + email del usuario actor (join).
+// El agregador filtra por accion para decidir si emite pedido_transicion o
+// consumo_eliminado o si lo descarta (consumo_inicial/consumo_completo).
+export interface HistorialParaActividad {
+  pedidoId: number;
+  proyectoNombre: string;
+  proveedorNombre: string;
+  estadoAnterior: string;
+  estadoNuevo: string;
+  accion: AccionHistorialPedido;
+  fecha: string;
+  usuarioId: number | null;
+  usuarioEmail: string | null;
+}
+
+export interface ProyectoParaActividad {
+  id: number;
+  nombre: string;
+  createdAt: string;
 }
 
 export const TIPOS_ACTIVIDAD = [
   'pedido_creado',
-  'pedido_solicitado',
-  'pedido_aprobado',
-  'pedido_actualizado',
+  'pedido_transicion',
   'consumo_registrado',
+  'consumo_eliminado',
+  'proyecto_creado',
 ] as const;
 
 export type TipoActividad = (typeof TIPOS_ACTIVIDAD)[number];
+
+export interface EventoActividadRecurso {
+  tipo: 'pedido' | 'consumo' | 'proyecto';
+  id: number;
+}
 
 export interface EventoActividad {
   tipo: TipoActividad;
   fecha: string;
   descripcion: string;
-  recurso: { tipo: 'pedido' | 'consumo' | 'proyecto'; id: number };
+  recurso: EventoActividadRecurso;
+  // Sub-acción presente sólo cuando viene de historial_pedido
+  // (pedido_transicion / consumo_eliminado). Para los demás tipos es null.
+  accion: AccionHistorialPedido | null;
+  // usuarioId actor del evento. null cuando no se conoce: pedido_creado y
+  // proyecto_creado nunca lo guardan (no hay columna), historial puede
+  // tener filas reconstruidas con usuarioId=null, y consumo_registrado
+  // puede tener usuarioId=null si el usuario actor fue soft-deleted.
+  usuarioId: number | null;
+  usuarioEmail: string | null;
 }
 
 export interface ActividadFiltros {
@@ -54,12 +96,14 @@ export interface ActividadFiltros {
   // inicio del día UTC.
   desde?: string;
   // ISO date — inclusive en el sentido "hasta el final de ese día". El
-  // caller puede pasar 'YYYY-MM-DD' (que en la comparación lexicográfica
-  // contra timestamps 'YYYY-MM-DDTHH:MM:SSZ' equivale a "antes del inicio
-  // del día"); para evitar confusiones, el filtro acepta el valor crudo
-  // y deja que el frontend construya el rango como prefiera. Para "todo
-  // el día N", pasar hasta como 'N+1' o 'NT23:59:59Z'.
+  // caller frontend construye el rango como prefiera (típicamente
+  // 'YYYY-MM-DDT23:59:59.999Z').
   hasta?: string;
+  // Substring case-insensitive sobre la descripción del evento.
+  q?: string;
+  usuarioId?: number;
+  pedidoId?: number;
+  proyectoId?: number;
 }
 
 export interface ActividadPagina {
@@ -67,12 +111,19 @@ export interface ActividadPagina {
   items: EventoActividad[];
 }
 
-const ESTADOS_TERMINALES = new Set(['Rechazado', 'Cancelado', 'Consumido']);
+const ACCIONES_PEDIDO_TRANSICION = new Set<AccionHistorialPedido>([
+  'solicitar',
+  'aprobar',
+  'rechazar',
+  'cancelar',
+]);
 
 export const AgregadorActividad = {
   agregar(
     pedidos: PedidoParaActividad[],
     consumos: ConsumoParaActividad[],
+    historial: HistorialParaActividad[],
+    proyectos: ProyectoParaActividad[],
     opts: ActividadFiltros = {},
   ): ActividadPagina {
     const eventos: EventoActividad[] = [];
@@ -83,39 +134,48 @@ export const AgregadorActividad = {
         fecha: p.createdAt,
         descripcion: `Pedido #${p.id} creado en ${p.proyectoNombre} (${p.proveedorNombre}).`,
         recurso: { tipo: 'pedido', id: p.id },
+        accion: null,
+        usuarioId: null,
+        usuarioEmail: null,
       });
-      if (p.fechaSolicitud) {
+    }
+
+    for (const proy of proyectos) {
+      eventos.push({
+        tipo: 'proyecto_creado',
+        fecha: proy.createdAt,
+        descripcion: `Proyecto ${proy.nombre} creado.`,
+        recurso: { tipo: 'proyecto', id: proy.id },
+        accion: null,
+        usuarioId: null,
+        usuarioEmail: null,
+      });
+    }
+
+    for (const h of historial) {
+      if (ACCIONES_PEDIDO_TRANSICION.has(h.accion)) {
         eventos.push({
-          tipo: 'pedido_solicitado',
-          fecha: p.fechaSolicitud,
-          descripcion: `Pedido #${p.id} solicitado.`,
-          recurso: { tipo: 'pedido', id: p.id },
+          tipo: 'pedido_transicion',
+          fecha: h.fecha,
+          descripcion: `Pedido #${h.pedidoId} ${verboTransicion(h.accion)}.`,
+          recurso: { tipo: 'pedido', id: h.pedidoId },
+          accion: h.accion,
+          usuarioId: h.usuarioId,
+          usuarioEmail: h.usuarioEmail,
+        });
+      } else if (h.accion === 'consumo_borrado') {
+        eventos.push({
+          tipo: 'consumo_eliminado',
+          fecha: h.fecha,
+          descripcion: `Consumo eliminado del pedido #${h.pedidoId} (${h.proyectoNombre}).`,
+          recurso: { tipo: 'pedido', id: h.pedidoId },
+          accion: h.accion,
+          usuarioId: h.usuarioId,
+          usuarioEmail: h.usuarioEmail,
         });
       }
-      if (p.fechaAprobacion) {
-        eventos.push({
-          tipo: 'pedido_aprobado',
-          fecha: p.fechaAprobacion,
-          descripcion: `Pedido #${p.id} aprobado.`,
-          recurso: { tipo: 'pedido', id: p.id },
-        });
-      }
-      // Si el estado actual es terminal y updatedAt no coincide con
-      // createdAt/fechaSolicitud/fechaAprobacion, el último cambio fue la
-      // entrada en ese estado terminal.
-      if (
-        ESTADOS_TERMINALES.has(p.estado) &&
-        p.updatedAt !== p.createdAt &&
-        p.updatedAt !== p.fechaSolicitud &&
-        p.updatedAt !== p.fechaAprobacion
-      ) {
-        eventos.push({
-          tipo: 'pedido_actualizado',
-          fecha: p.updatedAt,
-          descripcion: `Pedido #${p.id}: ${etiquetaEstado(p.estado)}.`,
-          recurso: { tipo: 'pedido', id: p.id },
-        });
-      }
+      // consumo_inicial / consumo_completo se omiten: redundantes con el
+      // consumo_registrado correspondiente.
     }
 
     for (const c of consumos) {
@@ -125,6 +185,9 @@ export const AgregadorActividad = {
         fecha: c.createdAt,
         descripcion: `Consumo de ${horas} h registrado en pedido #${c.pedidoId} (${c.recursoNombre}).`,
         recurso: { tipo: 'consumo', id: c.id },
+        accion: null,
+        usuarioId: c.usuarioId,
+        usuarioEmail: c.usuarioEmail,
       });
     }
 
@@ -132,10 +195,27 @@ export const AgregadorActividad = {
 
     const tiposSet =
       opts.tipo && opts.tipo.length > 0 ? new Set(opts.tipo) : null;
+    const qLower = opts.q ? opts.q.trim().toLowerCase() : null;
     const filtrados = eventos.filter((e) => {
       if (tiposSet && !tiposSet.has(e.tipo)) return false;
       if (opts.desde && e.fecha < opts.desde) return false;
       if (opts.hasta && e.fecha > opts.hasta) return false;
+      if (qLower && !e.descripcion.toLowerCase().includes(qLower)) return false;
+      if (opts.usuarioId !== undefined && e.usuarioId !== opts.usuarioId)
+        return false;
+      if (opts.pedidoId !== undefined) {
+        if (e.recurso.tipo !== 'pedido' || e.recurso.id !== opts.pedidoId)
+          return false;
+      }
+      // proyectoId: filtra eventos cuyo proyecto coincide. Sólo aplicable
+      // a proyecto_creado (recurso.id === proyectoId) y a pedido_creado
+      // cuando el descriptor lleva el proyecto, pero como no llevamos el
+      // proyectoId en EventoActividad lo dejamos limitado al recurso
+      // proyecto. (Para una v2: añadir proyectoId al evento.)
+      if (opts.proyectoId !== undefined) {
+        if (e.recurso.tipo !== 'proyecto' || e.recurso.id !== opts.proyectoId)
+          return false;
+      }
       return true;
     });
 
@@ -148,15 +228,17 @@ export const AgregadorActividad = {
   },
 };
 
-function etiquetaEstado(estado: string): string {
-  switch (estado) {
-    case 'Rechazado':
+function verboTransicion(accion: AccionHistorialPedido): string {
+  switch (accion) {
+    case 'solicitar':
+      return 'solicitado';
+    case 'aprobar':
+      return 'aprobado';
+    case 'rechazar':
       return 'rechazado';
-    case 'Cancelado':
+    case 'cancelar':
       return 'cancelado';
-    case 'Consumido':
-      return 'completado';
     default:
-      return estado.toLowerCase();
+      return accion;
   }
 }

@@ -107,11 +107,15 @@ describe('InicioService (integration)', () => {
 
     const pagina = service.actividad({ limit: 20 });
     const tipos = pagina.items.map((e) => e.tipo);
+    const acciones = pagina.items
+      .filter((e) => e.tipo === 'pedido_transicion')
+      .map((e) => e.accion);
 
     expect(tipos).toContain('pedido_creado');
-    expect(tipos).toContain('pedido_solicitado');
-    expect(tipos).toContain('pedido_aprobado');
+    expect(tipos).toContain('pedido_transicion');
     expect(tipos).toContain('consumo_registrado');
+    expect(acciones).toContain('solicitar');
+    expect(acciones).toContain('aprobar');
     expect(pagina.total).toBe(pagina.items.length);
 
     // ordenado por fecha desc — el primer evento es el más reciente
@@ -135,13 +139,14 @@ describe('InicioService (integration)', () => {
       ],
     });
 
+    // Total = 2: pedido_creado + proyecto_creado del setupBase().
     const cero = service.actividad({ limit: 0 });
     expect(cero.items).toEqual([]);
-    expect(cero.total).toBe(1);
+    expect(cero.total).toBe(2);
 
     const uno = service.actividad({ limit: 1 });
     expect(uno.items).toHaveLength(1);
-    expect(uno.total).toBe(1);
+    expect(uno.total).toBe(2);
   });
 
   it('actividad filtra por tipo y devuelve total post-filtro', () => {

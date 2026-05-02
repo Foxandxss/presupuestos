@@ -31,6 +31,7 @@ import { PageHeaderComponent } from '@operaciones/ui/shell';
 
 import { InicioApi } from '../home/inicio.api';
 import {
+  type AccionHistorialPedido,
   type ActividadEvento,
   TIPOS_ACTIVIDAD,
   type TipoActividad,
@@ -41,6 +42,7 @@ import {
   persistirDensidad,
   persistirFilas,
 } from '../listado-prefs';
+import { descargarCsv } from '../reportes/descargar-csv';
 
 const SECCION = 'actividad';
 
@@ -53,15 +55,25 @@ interface OpcionTipo {
 
 const OPCIONES_TIPO: OpcionTipo[] = [
   { label: 'Pedido creado', value: 'pedido_creado' },
-  { label: 'Pedido solicitado', value: 'pedido_solicitado' },
-  { label: 'Pedido aprobado', value: 'pedido_aprobado' },
-  { label: 'Pedido finalizado', value: 'pedido_actualizado' },
+  { label: 'Pedido transición', value: 'pedido_transicion' },
   { label: 'Consumo registrado', value: 'consumo_registrado' },
+  { label: 'Consumo eliminado', value: 'consumo_eliminado' },
+  { label: 'Proyecto creado', value: 'proyecto_creado' },
 ];
 
 const TIPO_LABEL = new Map<TipoActividad, string>(
   OPCIONES_TIPO.map((o) => [o.value, o.label]),
 );
+
+const ACCION_LABEL: Record<AccionHistorialPedido, string> = {
+  solicitar: 'Solicitar',
+  aprobar: 'Aprobar',
+  rechazar: 'Rechazar',
+  cancelar: 'Cancelar',
+  consumo_inicial: 'Primer consumo',
+  consumo_completo: 'Líneas saturadas',
+  consumo_borrado: 'Consumo borrado',
+};
 
 @Component({
   selector: 'app-actividad',
@@ -82,6 +94,18 @@ const TIPO_LABEL = new Map<TipoActividad, string>(
   ],
   templateUrl: './actividad.page.html',
   styleUrl: '../lista-base.css',
+  styles: [
+    `
+      .pre-actividad__sub {
+        color: var(--text-subtle);
+        font-size: 12px;
+        margin-left: 4px;
+      }
+      .pre-actividad__usuario-vacio {
+        color: var(--text-subtle);
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActividadPage {
@@ -94,6 +118,7 @@ export class ActividadPage {
 
   protected readonly cargando = signal(false);
   protected readonly errorCarga = signal<string | null>(null);
+  protected readonly exportando = signal(false);
   protected readonly total = signal(0);
   protected readonly items = signal<ActividadEvento[]>([]);
 
@@ -123,10 +148,10 @@ export class ActividadPage {
   protected readonly hastaFiltro = computed<string | null>(
     () => this.queryParams().get('hasta') ?? null,
   );
-
-  protected readonly tipoFiltroSignal = computed<TipoActividad[]>(() =>
-    this.tipoFiltro(),
+  protected readonly qFiltro = computed<string>(
+    () => this.queryParams().get('q') ?? '',
   );
+
   protected readonly desdeDate = computed<Date | null>(() => {
     const raw = this.desdeFiltro();
     return raw ? new Date(raw) : null;
@@ -140,7 +165,8 @@ export class ActividadPage {
     () =>
       this.tipoFiltro().length > 0 ||
       this.desdeFiltro() !== null ||
-      this.hastaFiltro() !== null,
+      this.hastaFiltro() !== null ||
+      this.qFiltro() !== '',
   );
 
   protected readonly resumen = computed(() => {
@@ -159,6 +185,7 @@ export class ActividadPage {
         tipo: this.tipoFiltro(),
         desde: this.desdeFiltro(),
         hasta: this.hastaFiltro(),
+        q: this.qFiltro(),
         first: this.first(),
         rows: this.filasPorPagina(),
       };
@@ -174,6 +201,11 @@ export class ActividadPage {
 
   protected etiquetaTipo(tipo: TipoActividad): string {
     return TIPO_LABEL.get(tipo) ?? tipo;
+  }
+
+  protected etiquetaAccion(accion: AccionHistorialPedido | null): string | null {
+    if (!accion) return null;
+    return ACCION_LABEL[accion] ?? accion;
   }
 
   protected formatearFecha(iso: string): string {
@@ -218,6 +250,11 @@ export class ActividadPage {
     }
   }
 
+  protected onQueryChange(valor: string): void {
+    this.first.set(0);
+    this.actualizarParam('q', valor.trim() === '' ? null : valor);
+  }
+
   protected limpiarFiltros(): void {
     this.first.set(0);
     void this.router.navigate([], {
@@ -236,9 +273,36 @@ export class ActividadPage {
       tipo: this.tipoFiltro(),
       desde: this.desdeFiltro(),
       hasta: this.hastaFiltro(),
+      q: this.qFiltro(),
       first: this.first(),
       rows: this.filasPorPagina(),
     });
+  }
+
+  protected exportarCsv(): void {
+    if (this.exportando()) return;
+    this.exportando.set(true);
+    this.api
+      .actividadCsv({
+        tipo: this.tipoFiltro().length > 0 ? this.tipoFiltro() : undefined,
+        desde: this.desdeFiltro() ?? undefined,
+        hasta: this.hastaFiltro() ?? undefined,
+        q: this.qFiltro() || undefined,
+      })
+      .subscribe({
+        next: (blob) => {
+          descargarCsv(blob, 'actividad.csv');
+          this.exportando.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.exportando.set(false);
+          this.toast.add({
+            severity: 'error',
+            summary: 'No se pudo exportar',
+            detail: this.extraerCopyError(err),
+          });
+        },
+      });
   }
 
   protected onClickEvento(evento: ActividadEvento): void {
@@ -263,6 +327,7 @@ export class ActividadPage {
     tipo: readonly TipoActividad[];
     desde: string | null;
     hasta: string | null;
+    q: string;
     first: number;
     rows: number;
   }): void {
@@ -276,6 +341,7 @@ export class ActividadPage {
         tipo: filtros.tipo.length > 0 ? filtros.tipo : undefined,
         desde: filtros.desde ?? undefined,
         hasta: filtros.hasta ?? undefined,
+        q: filtros.q || undefined,
       })
       .subscribe({
         next: (pagina) => {

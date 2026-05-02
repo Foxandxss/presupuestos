@@ -2,12 +2,26 @@
   <pre-page-header
     slot="header"
     titulo="Actividad"
-    descripcion="Eventos del sistema: pedidos creados y transicionados, consumos registrados."
-  />
+    descripcion="Eventos del sistema: pedidos creados y transicionados, consumos registrados/eliminados, proyectos creados."
+  >
+    <div slot="actions">
+      <p-button
+        label="Exportar CSV"
+        icon="pi pi-download"
+        severity="secondary"
+        [outlined]="true"
+        [loading]="exportando()"
+        (onClick)="exportarCsv()"
+      ></p-button>
+    </div>
+  </pre-page-header>
 
   <pre-list-toolbar
     slot="toolbar"
-    [mostrarSearch]="false"
+    [mostrarSearch]="true"
+    placeholder="Buscar en descripción..."
+    [query]="qFiltro()"
+    (queryChange)="onQueryChange($event)"
     [densidad]="densidad()"
     [hayFiltros]="hayFiltrosActivos()"
     [resumen]="resumen()"
@@ -90,22 +104,35 @@
       [rowsPerPageOptions]="[10, 25, 50]"
       [loading]="cargando()"
       dataKey="recurso.id"
-      [tableStyle]="{ 'min-width': '50rem' }"
+      [tableStyle]="{ 'min-width': '60rem' }"
       [styleClass]="'pre-lista__table is-' + densidad()"
       (onLazyLoad)="onLazyLoad($event)"
     >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 13rem">Fecha</th>
-          <th style="width: 14rem">Tipo</th>
+          <th style="width: 13rem">Tipo</th>
           <th>Descripción</th>
+          <th style="width: 13rem">Usuario</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr class="pre-lista__row" (click)="onClickEvento(row)">
           <td>{{ formatearFecha(row.fecha) }}</td>
-          <td>{{ etiquetaTipo(row.tipo) }}</td>
+          <td>
+            {{ etiquetaTipo(row.tipo) }}
+            @if (etiquetaAccion(row.accion); as accion) {
+              <span class="pre-actividad__sub">· {{ accion }}</span>
+            }
+          </td>
           <td>{{ row.descripcion }}</td>
+          <td>
+            @if (row.usuarioEmail) {
+              {{ row.usuarioEmail }}
+            } @else {
+              <span class="pre-actividad__usuario-vacio">—</span>
+            }
+          </td>
         </tr>
       </ng-template>
     </p-table>
