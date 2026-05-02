@@ -16,11 +16,9 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DatePickerModule } from 'primeng/datepicker';
-import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -30,6 +28,7 @@ import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
+import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
 import { mapearErrorACopy } from '@operaciones/ui/errores';
 import {
   etiquetaEstadoPedido,
@@ -68,21 +67,19 @@ interface FilaEditableEstimacion {
     ReactiveFormsModule,
     RouterLink,
     TableModule,
-    DialogModule,
     ButtonModule,
     InputTextModule,
     InputNumberModule,
     TextareaModule,
     DatePickerModule,
     SelectModule,
-    ConfirmDialogModule,
     ToastModule,
+    ModalComponent,
     StatusBadgeComponent,
     ErrorStateComponent,
     LoadingStateComponent,
     PreIfRolDirective,
   ],
-  providers: [ConfirmationService],
   templateUrl: './proyecto-detail.page.html',
   styleUrl: './proyecto-detail.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -95,7 +92,7 @@ export class ProyectoDetailPage {
   private readonly pedidosApi = inject(PedidosApi);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly confirm = inject(PreConfirm);
 
   protected readonly Rol = Rol;
 
@@ -318,32 +315,28 @@ export class ProyectoDetailPage {
 
   // ───────── Eliminar proyecto ─────────
 
-  protected eliminarProyecto(): void {
+  protected async eliminarProyecto(): Promise<void> {
     const p = this.proyecto();
     if (!p) return;
-    this.confirm.confirm({
-      message: `¿Eliminar el proyecto "${p.nombre}"? Esta acción es irreversible.`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Eliminar',
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => {
-        this.api.delete(p.id).subscribe({
-          next: () => {
-            this.toast.add({
-              severity: 'success',
-              summary: 'Proyecto eliminado',
-            });
-            void this.router.navigate(['/proyectos']);
-          },
-          error: (err: HttpErrorResponse) => {
-            this.toast.add({
-              severity: 'error',
-              summary: 'No se pudo eliminar',
-              detail: this.extraerCopyError(err),
-            });
-          },
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar proyecto',
+      mensaje: `¿Eliminar el proyecto "${p.nombre}"? Esta acción es irreversible.`,
+      accionLabel: 'Eliminar proyecto',
+    });
+    if (!ok) return;
+    this.api.delete(p.id).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Proyecto eliminado',
+        });
+        void this.router.navigate(['/proyectos']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo eliminar',
+          detail: this.extraerCopyError(err),
         });
       },
     });
@@ -464,7 +457,7 @@ export class ProyectoDetailPage {
     }
   }
 
-  protected eliminarFila(filaId: string): void {
+  protected async eliminarFila(filaId: string): Promise<void> {
     const proyectoId = this.idProyecto();
     if (proyectoId === null) return;
     const fila = this.filasEstimaciones().find((f) => f.filaId === filaId);
@@ -472,34 +465,30 @@ export class ProyectoDetailPage {
       this.cancelarEdicion(filaId);
       return;
     }
-    this.confirm.confirm({
-      message: `¿Eliminar la estimación de ${this.nombrePerfil(fila.perfilTecnicoId)}?`,
-      header: 'Confirmar',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Eliminar',
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => {
-        this.api
-          .deleteEstimacion(proyectoId, fila.estimacionId as number)
-          .subscribe({
-            next: () => {
-              this.recargarEstimaciones();
-              this.toast.add({
-                severity: 'success',
-                summary: 'Estimación eliminada',
-              });
-            },
-            error: (err: HttpErrorResponse) => {
-              this.toast.add({
-                severity: 'error',
-                summary: 'No se pudo eliminar',
-                detail: this.extraerCopyError(err),
-              });
-            },
-          });
-      },
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar estimación',
+      mensaje: `¿Eliminar la estimación de ${this.nombrePerfil(fila.perfilTecnicoId)}? Esta acción es irreversible.`,
+      accionLabel: 'Eliminar estimación',
     });
+    if (!ok) return;
+    this.api
+      .deleteEstimacion(proyectoId, fila.estimacionId)
+      .subscribe({
+        next: () => {
+          this.recargarEstimaciones();
+          this.toast.add({
+            severity: 'success',
+            summary: 'Estimación eliminada',
+          });
+        },
+        error: (err: HttpErrorResponse) => {
+          this.toast.add({
+            severity: 'error',
+            summary: 'No se pudo eliminar',
+            detail: this.extraerCopyError(err),
+          });
+        },
+      });
   }
 
   protected onPerfilFilaChange(filaId: string, perfilId: number | null): void {

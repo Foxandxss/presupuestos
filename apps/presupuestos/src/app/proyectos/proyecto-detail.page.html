@@ -1,5 +1,4 @@
 <p-toast></p-toast>
-<p-confirmDialog></p-confirmDialog>
 
 @if (noEncontrado()) {
   <div class="pre-detail__no-encontrado">
@@ -304,13 +303,11 @@
     </section>
   </div>
 
-  <p-dialog
+  <pre-modal
     [visible]="dialogVisible()"
+    titulo="Editar proyecto"
+    size="md"
     (visibleChange)="dialogVisible.set($event)"
-    header="Editar proyecto"
-    [modal]="true"
-    [style]="{ width: '36rem' }"
-    [closeOnEscape]="true"
   >
     <form
       [formGroup]="form"
@@ -370,21 +367,22 @@
           ></p-datePicker>
         </div>
       </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <p-button
-          type="button"
-          label="Cancelar"
-          severity="secondary"
-          [text]="true"
-          (onClick)="cerrarDialog()"
-        ></p-button>
-        <p-button
-          type="submit"
-          label="Guardar"
-          icon="pi pi-check"
-          [disabled]="form.invalid"
-        ></p-button>
-      </div>
     </form>
-  </p-dialog>
+    <div preModalFooter>
+      <p-button
+        type="button"
+        label="Cancelar"
+        severity="secondary"
+        [text]="true"
+        (onClick)="cerrarDialog()"
+      ></p-button>
+      <p-button
+        type="button"
+        label="Guardar"
+        icon="pi pi-check"
+        [disabled]="form.invalid"
+        (onClick)="guardarCabecera()"
+      ></p-button>
+    </div>
+  </pre-modal>
 }
