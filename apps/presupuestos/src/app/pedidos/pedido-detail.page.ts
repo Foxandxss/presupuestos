@@ -9,14 +9,14 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
+import { PreConfirm } from '@operaciones/ui/dialogos';
 import { mapearErrorACopy } from '@operaciones/ui/errores';
 import {
   etiquetaEstadoPedido,
@@ -116,7 +116,6 @@ const PEDIDOS_CONSUMIBLES: ReadonlySet<EstadoPedido> = new Set([
     RouterLink,
     TableModule,
     ButtonModule,
-    ConfirmDialogModule,
     ToastModule,
     StatusBadgeComponent,
     StatusTimelineComponent,
@@ -125,7 +124,6 @@ const PEDIDOS_CONSUMIBLES: ReadonlySet<EstadoPedido> = new Set([
     PreIfRolDirective,
     ConsumoDrawerComponent,
   ],
-  providers: [ConfirmationService],
   templateUrl: './pedido-detail.page.html',
   styleUrl: './pedido-detail.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -140,7 +138,7 @@ export class PedidoDetailPage {
   private readonly perfilesApi = inject(PerfilesTecnicosApi);
   private readonly recursosApi = inject(RecursosApi);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly confirm = inject(PreConfirm);
 
   protected readonly Rol = Rol;
 
@@ -291,41 +289,30 @@ export class PedidoDetailPage {
     return Math.min(100, Math.round((consumidas / linea.horasOfertadas) * 100));
   }
 
-  protected ejecutarPrimaria(): void {
+  protected async ejecutarPrimaria(): Promise<void> {
     const accion = this.accionPrimaria();
     const p = this.pedido();
     if (!accion || !p) return;
-    this.confirmarYEjecutar(p, accion.accion, accion.label);
+    const ok = await this.confirm.normal({
+      titulo: `${accion.label} pedido`,
+      mensaje: `¿${accion.label} el pedido #${p.id}?`,
+      accionLabel: `${accion.label} pedido`,
+    });
+    if (!ok) return;
+    this.invocarTransicion(p, accion.accion, accion.label);
   }
 
-  protected ejecutarDestructiva(): void {
+  protected async ejecutarDestructiva(): Promise<void> {
     const accion = this.accionDestructiva();
     const p = this.pedido();
     if (!accion || !p) return;
-    this.confirm.confirm({
-      message: `¿${accion.label} el pedido #${p.id}? Esta acción es irreversible.`,
-      header: `Confirmar: ${accion.label}`,
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: accion.label,
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => this.invocarTransicion(p, accion.accion, accion.label),
+    const ok = await this.confirm.destructivo({
+      titulo: `${accion.label} pedido`,
+      mensaje: `¿${accion.label} el pedido #${p.id}? Esta acción es irreversible.`,
+      accionLabel: `${accion.label} pedido`,
     });
-  }
-
-  private confirmarYEjecutar(
-    p: Pedido,
-    accion: AccionPedido,
-    label: string,
-  ): void {
-    this.confirm.confirm({
-      message: `¿${label} el pedido #${p.id}?`,
-      header: `Confirmar: ${label}`,
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: label,
-      rejectLabel: 'Cancelar',
-      accept: () => this.invocarTransicion(p, accion, label),
-    });
+    if (!ok) return;
+    this.invocarTransicion(p, accion.accion, accion.label);
   }
 
   private invocarTransicion(

@@ -18,11 +18,9 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DatePickerModule } from 'primeng/datepicker';
-import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
@@ -31,6 +29,7 @@ import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
+import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
 import {
   etiquetaEstadoPedido,
   StatusBadgeComponent,
@@ -160,14 +159,13 @@ function leerFilasInicial(): number {
     FormsModule,
     ReactiveFormsModule,
     TableModule,
-    DialogModule,
     ButtonModule,
     InputNumberModule,
     DatePickerModule,
     SelectModule,
     MultiSelectModule,
     ToastModule,
-    ConfirmDialogModule,
+    ModalComponent,
     StatusBadgeComponent,
     StatusTimelineComponent,
     ListPageComponent,
@@ -178,7 +176,7 @@ function leerFilasInicial(): number {
     PageHeaderComponent,
     PreIfRolDirective,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [MessageService],
   templateUrl: './pedidos.page.html',
   styleUrl: './pedidos.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -191,7 +189,7 @@ export class PedidosPage {
   private readonly serviciosApi = inject(ServiciosApi);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly confirm = inject(PreConfirm);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -599,59 +597,57 @@ export class PedidosPage {
     });
   }
 
-  ejecutarAccion(row: Pedido, accion: AccionDisponible): void {
-    this.confirm.confirm({
-      message: `¿${accion.label.toLowerCase()} el pedido #${row.id}?`,
-      header: `Confirmar: ${accion.label}`,
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: accion.label,
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: accion.severity },
-      accept: () => {
-        this.api.transitar(row.id, accion.accion).subscribe({
-          next: () => {
-            this.toast.add({
-              severity: 'success',
-              summary: `Pedido ${accion.label.toLowerCase()}`,
-            });
-            this.cargar();
-          },
-          error: (err: HttpErrorResponse) => {
-            this.toast.add({
-              severity: 'error',
-              summary: 'No se pudo cambiar el estado',
-              detail: extraerMensaje(err),
-            });
-          },
+  async ejecutarAccion(row: Pedido, accion: AccionDisponible): Promise<void> {
+    const esDestructivo =
+      accion.accion === 'cancelar' || accion.accion === 'rechazar';
+    const sufijo = esDestructivo ? ' Esta acción es irreversible.' : '';
+    const opciones = {
+      titulo: `${accion.label} pedido`,
+      mensaje: `¿${accion.label} el pedido #${row.id}?${sufijo}`,
+      accionLabel: `${accion.label} pedido`,
+    };
+    const ok = esDestructivo
+      ? await this.confirm.destructivo(opciones)
+      : await this.confirm.normal(opciones);
+    if (!ok) return;
+    this.api.transitar(row.id, accion.accion).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: `Pedido ${accion.label.toLowerCase()}`,
+        });
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo cambiar el estado',
+          detail: extraerMensaje(err),
         });
       },
     });
   }
 
-  eliminar(row: Pedido): void {
-    this.confirm.confirm({
-      message: `¿Eliminar el pedido #${row.id}?`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Eliminar',
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => {
-        this.api.delete(row.id).subscribe({
-          next: () => {
-            this.toast.add({
-              severity: 'success',
-              summary: 'Pedido eliminado',
-            });
-            this.cargar();
-          },
-          error: (err: HttpErrorResponse) => {
-            this.toast.add({
-              severity: 'error',
-              summary: 'No se pudo eliminar',
-              detail: extraerMensaje(err),
-            });
-          },
+  async eliminar(row: Pedido): Promise<void> {
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar pedido',
+      mensaje: `¿Eliminar el pedido #${row.id}? Esta acción es irreversible.`,
+      accionLabel: 'Eliminar pedido',
+    });
+    if (!ok) return;
+    this.api.delete(row.id).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Pedido eliminado',
+        });
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo eliminar',
+          detail: extraerMensaje(err),
         });
       },
     });

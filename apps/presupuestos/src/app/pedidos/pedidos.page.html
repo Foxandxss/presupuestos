@@ -1,5 +1,4 @@
 <p-toast></p-toast>
-<p-confirmDialog></p-confirmDialog>
 
 <pre-list-page>
   <pre-page-header
@@ -183,17 +182,15 @@
   }
 </pre-list-page>
 
-<p-dialog
+<pre-modal
   [visible]="dialogVisible()"
-  (visibleChange)="dialogVisible.set($event)"
-  [header]="
+  [titulo]="
     editandoId() === null
       ? 'Nuevo pedido'
       : 'Pedido #' + editandoId() + ' (' + etiquetaEstado(estadoActual()) + ')'
   "
-  [modal]="true"
-  [style]="{ width: '64rem' }"
-  [closeOnEscape]="true"
+  size="lg"
+  (visibleChange)="dialogVisible.set($event)"
 >
   <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-4">
     @if (pedidoActual(); as p) {
@@ -329,23 +326,23 @@
         }
       </div>
     </div>
-
-    <div class="flex justify-end gap-2 pt-2">
+  </form>
+  <div preModalFooter>
+    <p-button
+      type="button"
+      label="Cancelar"
+      severity="secondary"
+      [text]="true"
+      (onClick)="cerrarDialog()"
+    ></p-button>
+    @if (esEditable(estadoActual())) {
       <p-button
         type="button"
-        label="Cerrar"
-        severity="secondary"
-        [text]="true"
-        (onClick)="cerrarDialog()"
+        label="Guardar"
+        icon="pi pi-check"
+        [disabled]="form.invalid"
+        (onClick)="guardar()"
       ></p-button>
-      @if (esEditable(estadoActual())) {
-        <p-button
-          type="submit"
-          label="Guardar"
-          icon="pi pi-check"
-          [disabled]="form.invalid"
-        ></p-button>
-      }
-    </div>
-  </form>
-</p-dialog>
+    }
+  </div>
+</pre-modal>

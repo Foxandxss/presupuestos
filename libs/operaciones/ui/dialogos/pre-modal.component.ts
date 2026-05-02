@@ -10,6 +10,7 @@ import {
   output,
 } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+import { PrimeTemplate } from 'primeng/api';
 import { Dialog } from 'primeng/dialog';
 
 import { ICONOS } from '../iconos';
@@ -47,25 +48,25 @@ export class PreModalHeaderDirective {}
 @Component({
   selector: 'pre-modal',
   standalone: true,
-  imports: [CommonModule, Dialog, LucideAngularModule],
+  imports: [CommonModule, Dialog, LucideAngularModule, PrimeTemplate],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-dialog
       [visible]="visible()"
       [modal]="true"
-      [showHeader]="false"
+      [header]="titulo()"
       [closeOnEscape]="cerrable()"
       [dismissableMask]="false"
-      [closable]="cerrable()"
+      [closable]="false"
       [styleClass]="claseSize()"
       [contentStyleClass]="'pre-modal__contenido'"
       (visibleChange)="onVisibleChange($event)"
     >
-      <header class="pre-modal__header">
+      <ng-template pTemplate="header" let-ariaLabelledBy="ariaLabelledBy">
         @if (headerTpl(); as tpl) {
           <ng-container *ngTemplateOutlet="tpl"></ng-container>
         } @else {
-          <h2 class="pre-modal__titulo">{{ titulo() }}</h2>
+          <h2 [id]="ariaLabelledBy" class="pre-modal__titulo">{{ titulo() }}</h2>
         }
         @if (cerrable()) {
           <button
@@ -77,7 +78,7 @@ export class PreModalHeaderDirective {}
             <lucide-angular [img]="iconoCerrar" size="16" />
           </button>
         }
-      </header>
+      </ng-template>
       <div class="pre-modal__body">
         <ng-content></ng-content>
       </div>
@@ -99,7 +100,7 @@ export class PreModalHeaderDirective {}
         width: 48rem;
         max-width: calc(100vw - 2rem);
       }
-      .pre-modal__header {
+      :host ::ng-deep .pre-modal .p-dialog-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -107,14 +108,14 @@ export class PreModalHeaderDirective {}
         padding: 16px 20px;
         border-bottom: 1px solid var(--border-subtle);
       }
-      .pre-modal__titulo {
+      :host ::ng-deep .pre-modal .pre-modal__titulo {
         margin: 0;
         font-size: 16px;
         font-weight: 600;
         line-height: 24px;
         color: var(--text-default);
       }
-      .pre-modal__close {
+      :host ::ng-deep .pre-modal .pre-modal__close {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -126,11 +127,11 @@ export class PreModalHeaderDirective {}
         border-radius: var(--radius-sm);
         cursor: pointer;
       }
-      .pre-modal__close:hover {
+      :host ::ng-deep .pre-modal .pre-modal__close:hover {
         background-color: var(--surface-muted, #f1f5f9);
         color: var(--text-default);
       }
-      .pre-modal__close:focus-visible {
+      :host ::ng-deep .pre-modal .pre-modal__close:focus-visible {
         outline: 2px solid var(--ring-focus);
         outline-offset: 2px;
       }

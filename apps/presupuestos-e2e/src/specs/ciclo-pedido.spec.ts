@@ -77,12 +77,12 @@ test.describe('Ciclo de vida del Pedido', () => {
 
     // Solicitar -> confirm -> Solicitado
     await page.getByRole('button', { name: 'Solicitar' }).click();
-    await page.getByRole('button', { name: 'Solicitar', exact: true }).last().click();
+    await page.getByRole('button', { name: 'Solicitar pedido', exact: true }).click();
     await expect(cabecera.getByText('Solicitado').first()).toBeVisible({ timeout: 15_000 });
 
     // Aprobar -> confirm -> Aprobado
     await page.getByRole('button', { name: 'Aprobar' }).click();
-    await page.getByRole('button', { name: 'Aprobar', exact: true }).last().click();
+    await page.getByRole('button', { name: 'Aprobar pedido', exact: true }).click();
     await expect(cabecera.getByText('Aprobado').first()).toBeVisible({ timeout: 15_000 });
 
     // Consumo de la primera linea (5h junio 2026) -> EnEjecucion
@@ -112,7 +112,7 @@ test.describe('Ciclo de vida del Pedido', () => {
     await drawer.getByRole('button', { name: 'Registrar y nuevo' }).click();
 
     // Cierra el drawer manualmente para volver al detail.
-    await page.keyboard.press('Escape');
+    await drawer.getByRole('button', { name: 'Cerrar' }).click();
     await expect(drawer).toBeHidden();
 
     await expect(cabecera.getByText('Consumido').first()).toBeVisible({ timeout: 15_000 });
