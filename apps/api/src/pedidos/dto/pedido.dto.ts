@@ -59,6 +59,12 @@ export class HistorialPedidoDto {
 
   @ApiProperty()
   fecha!: string;
+
+  @ApiProperty({
+    description:
+      'true cuando la fila se reconstruyó best-effort a partir de fechaSolicitud / fechaAprobacion / updatedAt (migración 0008 sobre pedidos pre-#16, o seed sintético).',
+  })
+  reconstruido!: boolean;
 }
 
 export class PedidoDto {

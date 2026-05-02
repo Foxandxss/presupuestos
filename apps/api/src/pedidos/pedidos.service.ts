@@ -417,6 +417,7 @@ export class PedidosService {
         accion: h.accion,
         usuarioId: h.usuarioId ?? null,
         fecha: h.fecha,
+        reconstruido: h.reconstruido,
       })),
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,

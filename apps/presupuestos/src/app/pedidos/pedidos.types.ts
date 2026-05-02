@@ -22,6 +22,7 @@ export interface HistorialPedido {
   accion: AccionHistorialPedido;
   usuarioId: number | null;
   fecha: string;
+  reconstruido: boolean;
 }
 
 export interface LineaPedido {

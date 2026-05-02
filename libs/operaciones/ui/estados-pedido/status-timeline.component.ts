@@ -46,11 +46,13 @@ interface CardTerminal {
  * - Card terminal cuando es Rechazado/Cancelado con copy
  *   "[acción] el [fecha] desde [estado]".
  *
- * Las fechas exactas en los nodos provienen de `fechaSolicitud` y
- * `fechaAprobacion` cuando están disponibles. Los estados EnEjecucion y
- * Consumido aún no tienen timestamp explícito en el dominio (issue #16
- * añadirá `historial_pedido` con audit log completo); hasta entonces la
- * timeline omite la fecha bajo esos nodos.
+ * Las fechas exactas en cada nodo provienen de los inputs `fechaSolicitud`,
+ * `fechaAprobacion`, `fechaEnEjecucion` y `fechaConsumido`. La detail page
+ * los deriva de `pedido.historial` (issue #16): primer `consumo_inicial`
+ * para EnEjecucion, primer `consumo_completo` para Consumido. Si el pedido
+ * no tiene la entrada correspondiente (porque está en un estado anterior o
+ * porque pre-#16 no se registró), el input es null y la fecha del nodo se
+ * omite.
  */
 @Component({
   selector: 'pre-status-timeline',
@@ -97,19 +99,22 @@ export class StatusTimelineComponent {
   readonly estado = input.required<EstadoPedido>();
   readonly fechaSolicitud = input<string | null>(null);
   readonly fechaAprobacion = input<string | null>(null);
+  readonly fechaEnEjecucion = input<string | null>(null);
+  readonly fechaConsumido = input<string | null>(null);
 
   /**
    * Fecha del cambio a estado terminal (Rechazado/Cancelado). Sólo se
-   * usa cuando `estado` es terminal. Hasta el audit log de #16, esto es
-   * típicamente `pedido.updatedAt`.
+   * usa cuando `estado` es terminal. La detail page la deriva del
+   * historial (entrada cuyo estadoNuevo es el terminal); cae a
+   * `pedido.updatedAt` para pedidos pre-#16 sin entrada registrada.
    */
   readonly fechaTerminacion = input<string | null>(null);
 
   /**
    * Estado desde el que se transitó al terminal. Si no se proporciona,
    * inferimos: Rechazado → Solicitado, Cancelado → Aprobado. La inferencia
-   * para Cancelado es aproximada (puede haber sido EnEjecucion);
-   * #16 lo hará exacto.
+   * para Cancelado es aproximada (puede haber sido EnEjecucion); con la
+   * entrada de historial real es exacta.
    */
   readonly estadoPrevioTerminal = input<EstadoPedido | null>(null);
 
@@ -122,6 +127,8 @@ export class StatusTimelineComponent {
     const indiceActual = HAPPY_PATH.indexOf(estadoActual);
     const fechaSolicitud = formatearFechaCorta(this.fechaSolicitud());
     const fechaAprobacion = formatearFechaCorta(this.fechaAprobacion());
+    const fechaEnEjecucion = formatearFechaCorta(this.fechaEnEjecucion());
+    const fechaConsumido = formatearFechaCorta(this.fechaConsumido());
 
     return HAPPY_PATH.map((estado, indice) => ({
       estado,
@@ -131,7 +138,11 @@ export class StatusTimelineComponent {
           ? fechaSolicitud
           : estado === 'Aprobado'
             ? fechaAprobacion
-            : null,
+            : estado === 'EnEjecucion'
+              ? fechaEnEjecucion
+              : estado === 'Consumido'
+                ? fechaConsumido
+                : null,
       estadoNodo:
         indice < indiceActual
           ? 'pasado'

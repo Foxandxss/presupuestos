@@ -10,6 +10,8 @@ interface TimelineArgs {
   estado: EstadoPedido;
   fechaSolicitud: string | null;
   fechaAprobacion: string | null;
+  fechaEnEjecucion: string | null;
+  fechaConsumido: string | null;
   fechaTerminacion: string | null;
   estadoPrevioTerminal: EstadoPedido | null;
 }
@@ -34,6 +36,8 @@ const meta: Meta<TimelineArgs> = {
     },
     fechaSolicitud: { control: { type: 'text' } },
     fechaAprobacion: { control: { type: 'text' } },
+    fechaEnEjecucion: { control: { type: 'text' } },
+    fechaConsumido: { control: { type: 'text' } },
     fechaTerminacion: { control: { type: 'text' } },
     estadoPrevioTerminal: {
       control: { type: 'select' },
@@ -58,6 +62,8 @@ export const Borrador: Story = {
     estado: 'Borrador',
     fechaSolicitud: null,
     fechaAprobacion: null,
+    fechaEnEjecucion: null,
+    fechaConsumido: null,
     fechaTerminacion: null,
     estadoPrevioTerminal: null,
   },
@@ -68,6 +74,8 @@ export const Solicitado: Story = {
     estado: 'Solicitado',
     fechaSolicitud: '2026-04-15',
     fechaAprobacion: null,
+    fechaEnEjecucion: null,
+    fechaConsumido: null,
     fechaTerminacion: null,
     estadoPrevioTerminal: null,
   },
@@ -78,6 +86,8 @@ export const Aprobado: Story = {
     estado: 'Aprobado',
     fechaSolicitud: '2026-04-15',
     fechaAprobacion: '2026-04-18',
+    fechaEnEjecucion: null,
+    fechaConsumido: null,
     fechaTerminacion: null,
     estadoPrevioTerminal: null,
   },
@@ -88,6 +98,8 @@ export const EnEjecucion: Story = {
     estado: 'EnEjecucion',
     fechaSolicitud: '2026-04-15',
     fechaAprobacion: '2026-04-18',
+    fechaEnEjecucion: '2026-05-02',
+    fechaConsumido: null,
     fechaTerminacion: null,
     estadoPrevioTerminal: null,
   },
@@ -98,6 +110,8 @@ export const Consumido: Story = {
     estado: 'Consumido',
     fechaSolicitud: '2026-04-15',
     fechaAprobacion: '2026-04-18',
+    fechaEnEjecucion: '2026-05-02',
+    fechaConsumido: '2026-08-30',
     fechaTerminacion: null,
     estadoPrevioTerminal: null,
   },
@@ -108,6 +122,8 @@ export const RechazadoTerminal: Story = {
     estado: 'Rechazado',
     fechaSolicitud: '2026-04-15',
     fechaAprobacion: null,
+    fechaEnEjecucion: null,
+    fechaConsumido: null,
     fechaTerminacion: '2026-04-17',
     estadoPrevioTerminal: 'Solicitado',
   },
@@ -126,6 +142,8 @@ export const CanceladoTerminal: Story = {
     estado: 'Cancelado',
     fechaSolicitud: '2026-04-15',
     fechaAprobacion: '2026-04-18',
+    fechaEnEjecucion: null,
+    fechaConsumido: null,
     fechaTerminacion: '2026-04-22',
     estadoPrevioTerminal: 'Aprobado',
   },

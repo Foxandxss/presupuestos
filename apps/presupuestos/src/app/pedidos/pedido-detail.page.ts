@@ -60,6 +60,7 @@ interface HistorialFila {
   estadoAnterior: string;
   estadoNuevo: string;
   accionLabel: string;
+  reconstruido: boolean;
 }
 
 const ACCIONES_HISTORIAL_LABEL: Record<AccionHistorialPedido, string> = {
@@ -297,6 +298,31 @@ export class PedidoDetailPage {
     () => this.entradaTerminal()?.estadoAnterior ?? null,
   );
 
+  /**
+   * Fecha del salto Aprobado→EnEjecucion (primer consumo). Derivada de la
+   * primera entrada del historial cuyo estadoNuevo es EnEjecucion. null si
+   * el pedido aún no ha llegado a EnEjecucion o si el historial no la tiene
+   * (pedido pre-#16 sin entrada registrada).
+   */
+  protected readonly fechaEnEjecucion = computed<string | null>(() => {
+    const p = this.pedido();
+    if (!p) return null;
+    const h = p.historial.find((entry) => entry.estadoNuevo === 'EnEjecucion');
+    return h?.fecha ?? null;
+  });
+
+  /**
+   * Fecha del salto a Consumido (todas las líneas saturadas). Derivada de
+   * la primera entrada del historial cuyo estadoNuevo es Consumido. null si
+   * el pedido aún no ha llegado a Consumido o si el historial no la tiene.
+   */
+  protected readonly fechaConsumido = computed<string | null>(() => {
+    const p = this.pedido();
+    if (!p) return null;
+    const h = p.historial.find((entry) => entry.estadoNuevo === 'Consumido');
+    return h?.fecha ?? null;
+  });
+
   protected readonly historialFilas = computed<HistorialFila[]>(() => {
     const p = this.pedido();
     if (!p) return [];
@@ -307,8 +333,13 @@ export class PedidoDetailPage {
       estadoAnterior: etiquetaEstadoPedido(h.estadoAnterior),
       estadoNuevo: etiquetaEstadoPedido(h.estadoNuevo),
       accionLabel: ACCIONES_HISTORIAL_LABEL[h.accion],
+      reconstruido: h.reconstruido,
     }));
   });
+
+  protected readonly hayReconstruidos = computed<boolean>(() =>
+    this.historialFilas().some((h) => h.reconstruido),
+  );
 
   constructor() {
     this.cargar();

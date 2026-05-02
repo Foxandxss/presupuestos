@@ -4,6 +4,7 @@ import type { AppDatabase } from '../connection';
 import {
   consumosMensuales,
   estimacionesPerfil,
+  historialPedido,
   lineasPedido,
   pedidos,
   perfilesTecnicos,
@@ -16,6 +17,7 @@ import {
 
 const TABLAS_FK_SAFE = [
   consumosMensuales,
+  historialPedido,
   lineasPedido,
   pedidos,
   estimacionesPerfil,
@@ -29,6 +31,7 @@ const TABLAS_FK_SAFE = [
 
 const TABLAS_AUTOINCREMENT_NOMBRES = [
   'consumos_mensuales',
+  'historial_pedido',
   'lineas_pedido',
   'pedidos',
   'estimaciones_perfil',

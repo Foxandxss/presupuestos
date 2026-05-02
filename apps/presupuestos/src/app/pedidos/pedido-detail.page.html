@@ -111,6 +111,8 @@
         [estado]="p.estado"
         [fechaSolicitud]="p.fechaSolicitud"
         [fechaAprobacion]="p.fechaAprobacion"
+        [fechaEnEjecucion]="fechaEnEjecucion()"
+        [fechaConsumido]="fechaConsumido()"
         [fechaTerminacion]="fechaTerminacion()"
         [estadoPrevioTerminal]="estadoPrevioTerminal()"
       />
@@ -207,12 +209,29 @@
           </ng-template>
           <ng-template pTemplate="body" let-h>
             <tr>
-              <td>{{ h.fechaCorta ?? h.fecha }}</td>
+              <td>
+                {{ h.fechaCorta ?? h.fecha }}
+                @if (h.reconstruido) {
+                  <span
+                    class="pre-detail__reconstruido"
+                    title="Fecha reconstruida a partir de fechaSolicitud / fechaAprobacion / updatedAt. El usuario actor original no quedó registrado."
+                    aria-label="Entrada reconstruida"
+                  >*</span>
+                }
+              </td>
               <td>{{ h.accionLabel }}</td>
               <td>{{ h.estadoAnterior }} → {{ h.estadoNuevo }}</td>
             </tr>
           </ng-template>
         </p-table>
+        @if (hayReconstruidos()) {
+          <p class="pre-detail__nota">
+            <span class="pre-detail__reconstruido">*</span>
+            Entradas reconstruidas best-effort para pedidos previos al
+            audit log. Las fechas son aproximadas y no se conoce el
+            usuario actor.
+          </p>
+        }
       }
     </section>
 

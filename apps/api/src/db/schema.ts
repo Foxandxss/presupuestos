@@ -229,6 +229,14 @@ export const historialPedido = sqliteTable('historial_pedido', {
   fecha: text('fecha')
     .notNull()
     .default(sql`(CURRENT_TIMESTAMP)`),
+  // true cuando la fila se reconstruyó best-effort a partir de
+  // fechaSolicitud / fechaAprobacion / updatedAt (migración 0008 sobre
+  // pedidos pre-#16, o seed sintético). false para entradas escritas por
+  // PedidosService.transitar() o ConsumosService a partir de un evento
+  // real con usuarioId conocido.
+  reconstruido: integer('reconstruido', { mode: 'boolean' })
+    .notNull()
+    .default(false),
 });
 
 export type HistorialPedido = typeof historialPedido.$inferSelect;

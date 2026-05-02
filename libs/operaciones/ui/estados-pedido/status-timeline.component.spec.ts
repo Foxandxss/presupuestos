@@ -11,6 +11,8 @@ import { StatusTimelineComponent } from './status-timeline.component';
       [estado]="estado"
       [fechaSolicitud]="fechaSolicitud"
       [fechaAprobacion]="fechaAprobacion"
+      [fechaEnEjecucion]="fechaEnEjecucion"
+      [fechaConsumido]="fechaConsumido"
       [fechaTerminacion]="fechaTerminacion"
       [estadoPrevioTerminal]="estadoPrevioTerminal"
     />
@@ -27,6 +29,8 @@ class HostComponent {
     | 'Cancelado' = 'Borrador';
   fechaSolicitud: string | null = null;
   fechaAprobacion: string | null = null;
+  fechaEnEjecucion: string | null = null;
+  fechaConsumido: string | null = null;
   fechaTerminacion: string | null = null;
   estadoPrevioTerminal:
     | 'Borrador'
@@ -137,6 +141,34 @@ describe('StatusTimelineComponent', () => {
     expect(fechas[1]).toBe('1 mar 2026');
     expect(fechas[2]).toBe('15 mar 2026');
     expect(fechas[3]).toBeUndefined();
+  });
+
+  it('muestra fechas bajo EnEjecucion y Consumido cuando se proporcionan', () => {
+    host.estado = 'Consumido';
+    host.fechaSolicitud = '2026-03-01';
+    host.fechaAprobacion = '2026-03-15';
+    host.fechaEnEjecucion = '2026-04-02';
+    host.fechaConsumido = '2026-05-20';
+    fixture.detectChanges();
+
+    const fechas = nodos().map((n) =>
+      n.querySelector('.pre-timeline__fecha')?.textContent?.trim(),
+    );
+    expect(fechas[3]).toBe('2 abr 2026');
+    expect(fechas[4]).toBe('20 may 2026');
+  });
+
+  it('omite la fecha bajo EnEjecucion/Consumido si los inputs son null', () => {
+    host.estado = 'Consumido';
+    host.fechaSolicitud = '2026-03-01';
+    host.fechaAprobacion = '2026-03-15';
+    fixture.detectChanges();
+
+    const fechas = nodos().map((n) =>
+      n.querySelector('.pre-timeline__fecha')?.textContent?.trim(),
+    );
+    expect(fechas[3]).toBeUndefined();
+    expect(fechas[4]).toBeUndefined();
   });
 
   it('omite la fecha bajo Solicitado si fechaSolicitud es null', () => {

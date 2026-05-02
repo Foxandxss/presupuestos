@@ -16,6 +16,8 @@ export interface RegistroHistorial {
   estadoNuevo: EstadoPedido;
   accion: AccionHistorialPedido;
   usuarioId?: number | null;
+  reconstruido?: boolean;
+  fecha?: string;
 }
 
 @Injectable()
@@ -34,6 +36,8 @@ export class HistorialPedidoService {
         estadoNuevo: reg.estadoNuevo,
         accion: reg.accion,
         usuarioId: reg.usuarioId ?? null,
+        reconstruido: reg.reconstruido ?? false,
+        ...(reg.fecha !== undefined ? { fecha: reg.fecha } : {}),
       })
       .run();
   }

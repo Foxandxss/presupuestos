@@ -379,6 +379,14 @@ describe('PedidosService', () => {
       const [enLista] = service.list();
       expect(enLista.historial).toEqual([]);
     });
+
+    it('historial escrito por transitar tiene reconstruido=false', () => {
+      const { pedido } = setupConLinea();
+      service.transitar(pedido.id, 'solicitar');
+      const dto = service.get(pedido.id);
+      expect(dto.historial).toHaveLength(1);
+      expect(dto.historial[0].reconstruido).toBe(false);
+    });
   });
 
   describe('edición de líneas restringida por estado', () => {
