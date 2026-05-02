@@ -16,14 +16,13 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 
 import { Rol } from '@operaciones/dominio';
+import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -54,10 +53,9 @@ const SECCION = 'perfiles-tecnicos';
     CommonModule,
     ReactiveFormsModule,
     TableModule,
-    DialogModule,
     ButtonModule,
     InputTextModule,
-    ConfirmDialogModule,
+    ModalComponent,
     ListPageComponent,
     ListToolbarComponent,
     EmptyStateComponent,
@@ -67,7 +65,6 @@ const SECCION = 'perfiles-tecnicos';
     PageHeaderComponent,
     PreIfRolDirective,
   ],
-  providers: [ConfirmationService],
   templateUrl: './perfiles-tecnicos.page.html',
   styleUrl: '../lista-base.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,7 +73,7 @@ export class PerfilesTecnicosPage {
   private readonly api = inject(PerfilesTecnicosApi);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly confirm = inject(PreConfirm);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -231,30 +228,26 @@ export class PerfilesTecnicosPage {
     });
   }
 
-  eliminar(row: PerfilTecnico): void {
-    this.confirm.confirm({
-      message: `¿Eliminar el perfil técnico "${row.nombre}"?`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Eliminar',
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => {
-        this.api.delete(row.id).subscribe({
-          next: () => {
-            this.toast.add({
-              severity: 'success',
-              summary: 'Perfil eliminado',
-            });
-            this.cargar();
-          },
-          error: (err: HttpErrorResponse) => {
-            this.toast.add({
-              severity: 'error',
-              summary: 'No se pudo eliminar',
-              detail: extraerMensaje(err),
-            });
-          },
+  async eliminar(row: PerfilTecnico): Promise<void> {
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar perfil técnico',
+      mensaje: `¿Eliminar el perfil técnico "${row.nombre}"? Esta acción es irreversible.`,
+      accionLabel: 'Eliminar perfil técnico',
+    });
+    if (!ok) return;
+    this.api.delete(row.id).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Perfil eliminado',
+        });
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo eliminar',
+          detail: extraerMensaje(err),
         });
       },
     });
