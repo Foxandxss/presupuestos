@@ -9,18 +9,10 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -28,6 +20,7 @@ import { TagModule } from 'primeng/tag';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
+import { PreConfirm } from '@operaciones/ui/dialogos';
 import { mapearErrorACopy } from '@operaciones/ui/errores';
 import {
   type DensidadLista,
@@ -58,8 +51,9 @@ import {
 } from '../listado-prefs';
 import { PedidosApi } from '../pedidos/pedidos.api';
 import type { LineaPedido, Pedido } from '../pedidos/pedidos.types';
+import { ConsumoDrawerComponent } from './consumo-drawer.component';
 import { ConsumosApi } from './consumos.api';
-import type { Consumo, CrearConsumo } from './consumos.types';
+import type { Consumo } from './consumos.types';
 
 const SECCION = 'consumos';
 
@@ -73,15 +67,6 @@ interface OpcionPedido {
   label: string;
   proveedorId: number;
   estado: Pedido['estado'];
-}
-
-interface OpcionLinea {
-  id: number;
-  pedidoId: number;
-  perfilTecnicoId: number;
-  fechaInicio: string;
-  fechaFin: string;
-  label: string;
 }
 
 const MESES = [
@@ -105,14 +90,11 @@ const MESES = [
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     TableModule,
-    DialogModule,
     ButtonModule,
     InputNumberModule,
     SelectModule,
     TagModule,
-    ConfirmDialogModule,
     ListPageComponent,
     ListToolbarComponent,
     EmptyStateComponent,
@@ -120,8 +102,8 @@ const MESES = [
     LoadingStateComponent,
     PageHeaderComponent,
     PreIfRolDirective,
+    ConsumoDrawerComponent,
   ],
-  providers: [ConfirmationService],
   templateUrl: './consumos.page.html',
   styleUrl: '../lista-base.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -132,9 +114,8 @@ export class ConsumosPage {
   private readonly recursosApi = inject(RecursosApi);
   private readonly proveedoresApi = inject(ProveedoresApi);
   private readonly perfilesApi = inject(PerfilesTecnicosApi);
-  private readonly fb = inject(FormBuilder);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly confirm = inject(PreConfirm);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -147,8 +128,7 @@ export class ConsumosPage {
   protected readonly perfiles = signal<PerfilTecnico[]>([]);
   protected readonly cargando = signal(false);
   protected readonly errorCarga = signal<string | null>(null);
-  protected readonly dialogVisible = signal(false);
-  protected readonly pedidoIdSeleccionado = signal<number | null>(null);
+  protected readonly drawerAbierto = signal(false);
 
   protected readonly densidad = signal<DensidadLista>(leerDensidadInicial(SECCION));
   protected readonly filasPorPagina = signal<number>(leerFilasInicial(SECCION));
@@ -187,30 +167,6 @@ export class ConsumosPage {
         estado: p.estado,
         label: `#${p.id} · ${provs.get(p.proveedorId) ?? '?'} · ${p.estado}`,
       }));
-  });
-
-  protected readonly opcionesLinea = computed<OpcionLinea[]>(() => {
-    const id = this.pedidoIdSeleccionado();
-    if (id === null) return [];
-    const pedido = this.pedidosPorId().get(id);
-    if (!pedido) return [];
-    const perfiles = this.perfilesPorId();
-    return pedido.lineas.map((l) => ({
-      id: l.id,
-      pedidoId: pedido.id,
-      perfilTecnicoId: l.perfilTecnicoId,
-      fechaInicio: l.fechaInicio,
-      fechaFin: l.fechaFin,
-      label: `Línea #${l.id} · ${perfiles.get(l.perfilTecnicoId) ?? '?'} · ${l.fechaInicio} → ${l.fechaFin} · ${l.horasOfertadas}h ofertadas`,
-    }));
-  });
-
-  protected readonly recursosDisponibles = computed<Recurso[]>(() => {
-    const id = this.pedidoIdSeleccionado();
-    if (id === null) return [];
-    const pedido = this.pedidosPorId().get(id);
-    if (!pedido) return [];
-    return this.recursos().filter((r) => r.proveedorId === pedido.proveedorId);
   });
 
   private readonly queryParams = toSignal(this.route.queryParamMap, {
@@ -268,27 +224,8 @@ export class ConsumosPage {
     return `Mostrando ${visibles} de ${total}`;
   });
 
-  protected readonly form: FormGroup = this.fb.group({
-    pedidoId: [null as number | null, [Validators.required]],
-    lineaPedidoId: [null as number | null, [Validators.required]],
-    recursoId: [null as number | null, [Validators.required]],
-    mes: [null as number | null, [Validators.required]],
-    anio: [
-      new Date().getFullYear(),
-      [Validators.required, Validators.min(2000), Validators.max(2100)],
-    ],
-    horasConsumidas: [
-      null as number | null,
-      [Validators.required, Validators.min(0)],
-    ],
-  });
-
   constructor() {
     this.cargar();
-    this.form.get('pedidoId')?.valueChanges.subscribe((id: number | null) => {
-      this.pedidoIdSeleccionado.set(id);
-      this.form.patchValue({ lineaPedidoId: null, recursoId: null });
-    });
     effect(() => persistirDensidad(SECCION, this.densidad()));
     effect(() => persistirFilas(SECCION, this.filasPorPagina()));
   }
@@ -346,8 +283,8 @@ export class ConsumosPage {
   }
 
   protected onRowClick(row: Consumo): void {
-    // Placeholder: el drawer de Consumo llega en #26. Mientras, no hace nada;
-    // las acciones de eliminación viven en la columna de acciones.
+    // Placeholder: el drawer de detalle/edicion de Consumo llega en #26.
+    // El drawer actual (pre-consumo-drawer) es solo de registro.
     void row;
   }
 
@@ -384,78 +321,42 @@ export class ConsumosPage {
     });
   }
 
-  abrirCrear(): void {
-    this.pedidoIdSeleccionado.set(null);
-    this.form.reset({
-      pedidoId: null,
-      lineaPedidoId: null,
-      recursoId: null,
-      mes: null,
-      anio: new Date().getFullYear(),
-      horasConsumidas: null,
+  protected abrirDrawer(): void {
+    this.drawerAbierto.set(true);
+  }
+
+  protected cerrarDrawer(): void {
+    this.drawerAbierto.set(false);
+  }
+
+  protected onConsumoRegistrado(consumo: Consumo): void {
+    this.consumos.update((lista) => [...lista, consumo]);
+    this.toast.add({
+      severity: 'success',
+      summary: 'Consumo registrado',
     });
-    this.dialogVisible.set(true);
   }
 
-  cerrarDialog(): void {
-    this.dialogVisible.set(false);
-  }
-
-  guardar(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    const dto: CrearConsumo = {
-      lineaPedidoId: this.form.value.lineaPedidoId as number,
-      recursoId: this.form.value.recursoId as number,
-      mes: this.form.value.mes as number,
-      anio: this.form.value.anio as number,
-      horasConsumidas: this.form.value.horasConsumidas as number,
-    };
-    this.api.create(dto).subscribe({
+  async eliminar(row: Consumo): Promise<void> {
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar consumo',
+      mensaje: `¿Eliminar el consumo del ${row.mes}/${row.anio} de la línea #${row.lineaPedidoId}? Esta acción es irreversible.`,
+      accionLabel: 'Eliminar consumo',
+    });
+    if (!ok) return;
+    this.api.delete(row.id).subscribe({
       next: () => {
         this.toast.add({
           severity: 'success',
-          summary: 'Consumo registrado',
+          summary: 'Consumo eliminado',
         });
-        this.dialogVisible.set(false);
         this.cargar();
       },
       error: (err: HttpErrorResponse) => {
         this.toast.add({
           severity: 'error',
-          summary: 'No se pudo registrar el consumo',
+          summary: 'No se pudo eliminar',
           detail: extraerMensaje(err),
-        });
-      },
-    });
-  }
-
-  eliminar(row: Consumo): void {
-    this.confirm.confirm({
-      message: `¿Eliminar el consumo del ${row.mes}/${row.anio} de la línea #${row.lineaPedidoId}?`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Eliminar',
-      rejectLabel: 'Cancelar',
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => {
-        this.api.delete(row.id).subscribe({
-          next: () => {
-            this.toast.add({
-              severity: 'success',
-              summary: 'Consumo eliminado',
-            });
-            this.cargar();
-          },
-          error: (err: HttpErrorResponse) => {
-            this.toast.add({
-              severity: 'error',
-              summary: 'No se pudo eliminar',
-              detail: extraerMensaje(err),
-            });
-          },
         });
       },
     });
