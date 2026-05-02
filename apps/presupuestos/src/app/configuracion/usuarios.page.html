@@ -1,0 +1,210 @@
+<pre-list-page>
+  <pre-page-header
+    slot="header"
+    titulo="Usuarios"
+    descripcion="Crea y administra cuentas de usuario. Solo accesible para admins."
+  >
+    <div slot="actions">
+      <p-button
+        label="Nuevo usuario"
+        icon="pi pi-plus"
+        (onClick)="abrirCrear()"
+      ></p-button>
+    </div>
+  </pre-page-header>
+
+  <pre-list-toolbar
+    slot="toolbar"
+    [mostrarSearch]="true"
+    placeholder="Buscar por email o nombre..."
+    [query]="qFiltro()"
+    (queryChange)="onQueryChange($event)"
+    [densidad]="densidad()"
+    [hayFiltros]="hayFiltrosActivos()"
+    [resumen]="resumen()"
+    (densidadChange)="onDensidadChange($event)"
+    (limpiarFiltros)="limpiarFiltros()"
+  >
+    <div slot="filtros" class="flex flex-wrap items-center gap-2">
+      <p-select
+        [options]="opcionesRol"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="rolFiltro()"
+        (ngModelChange)="onRolChange($any($event))"
+        placeholder="Rol"
+        appendTo="body"
+        [showClear]="true"
+        styleClass="pre-lista__filter"
+        ariaLabel="Filtrar por rol"
+      ></p-select>
+    </div>
+  </pre-list-toolbar>
+
+  @if (errorCarga(); as err) {
+    <pre-error-state
+      titulo="No se pudieron cargar los usuarios"
+      [descripcion]="err"
+      (reintentar)="reintentar()"
+    />
+  } @else if (cargando() && items().length === 0) {
+    <pre-loading-state [cuenta]="6" />
+  } @else if (total() === 0) {
+    @if (hayFiltrosActivos()) {
+      <pre-empty-state
+        variante="sin-resultados"
+        titulo="Ningún usuario cumple los filtros"
+        descripcion="Ajusta o limpia los filtros para volver a verlos."
+      >
+        <p-button
+          label="Limpiar filtros"
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="limpiarFiltros()"
+        ></p-button>
+      </pre-empty-state>
+    } @else {
+      <pre-empty-state
+        variante="primer-uso"
+        titulo="Aún no hay usuarios"
+        descripcion="Cuando crees el primer usuario aparecerá aquí."
+      >
+        <p-button
+          label="Nuevo usuario"
+          icon="pi pi-plus"
+          (onClick)="abrirCrear()"
+        ></p-button>
+      </pre-empty-state>
+    }
+  } @else {
+    <p-table
+      [value]="items()"
+      [lazy]="true"
+      [paginator]="true"
+      [rows]="filasPorPagina()"
+      [first]="first()"
+      [totalRecords]="total()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [loading]="cargando()"
+      dataKey="id"
+      [tableStyle]="{ 'min-width': '50rem' }"
+      [styleClass]="'pre-lista__table is-' + densidad()"
+      (onLazyLoad)="onLazyLoad($event)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 18rem">Email</th>
+          <th>Nombre</th>
+          <th style="width: 8rem">Rol</th>
+          <th style="width: 9rem">Estado</th>
+          <th style="width: 9rem">Creado</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr class="pre-lista__row">
+          <td>{{ row.email }}</td>
+          <td>{{ row.nombre || '—' }}</td>
+          <td>{{ etiquetaRol(row.rol) }}</td>
+          <td>
+            <span
+              class="pre-usuarios__estado"
+              [ngClass]="
+                'pre-usuarios__estado--' + estadoUsuario(row).clase
+              "
+            >
+              {{ estadoUsuario(row).label }}
+            </span>
+          </td>
+          <td>{{ formatearFecha(row.createdAt) }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</pre-list-page>
+
+<pre-modal
+  [visible]="dialogVisible()"
+  titulo="Nuevo usuario"
+  size="md"
+  (visibleChange)="dialogVisible.set($event)"
+>
+  <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-3">
+    <div class="flex flex-col gap-1">
+      <label for="usuario-email" class="text-sm text-slate-700">Email</label>
+      <input
+        pInputText
+        id="usuario-email"
+        type="email"
+        formControlName="email"
+        autocomplete="off"
+      />
+      @if (form.controls['email'].invalid && form.controls['email'].touched) {
+        <small class="text-red-600">Email obligatorio y con formato válido.</small>
+      }
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="usuario-nombre" class="text-sm text-slate-700">Nombre</label>
+      <input
+        pInputText
+        id="usuario-nombre"
+        type="text"
+        formControlName="nombre"
+        autocomplete="off"
+      />
+      @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
+        <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
+      }
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="usuario-rol" class="text-sm text-slate-700">Rol</label>
+      <p-select
+        inputId="usuario-rol"
+        [options]="opcionesRol"
+        optionLabel="label"
+        optionValue="value"
+        formControlName="rol"
+        appendTo="body"
+      ></p-select>
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="usuario-password" class="text-sm text-slate-700">
+        Contraseña inicial
+      </label>
+      <input
+        pInputText
+        id="usuario-password"
+        type="text"
+        formControlName="passwordInicial"
+        autocomplete="new-password"
+      />
+      <small class="text-slate-500">
+        Entrega la contraseña al usuario por canal externo. Mínimo 8 caracteres.
+      </small>
+      @if (
+        form.controls['passwordInicial'].invalid &&
+        form.controls['passwordInicial'].touched
+      ) {
+        <small class="text-red-600">
+          La contraseña inicial debe tener al menos 8 caracteres.
+        </small>
+      }
+    </div>
+  </form>
+  <div preModalFooter>
+    <p-button
+      type="button"
+      label="Cancelar"
+      severity="secondary"
+      [text]="true"
+      (onClick)="cerrarDialog()"
+    ></p-button>
+    <p-button
+      type="button"
+      label="Crear usuario"
+      icon="pi pi-check"
+      [loading]="guardando()"
+      [disabled]="form.invalid"
+      (onClick)="guardar()"
+    ></p-button>
+  </div>
+</pre-modal>

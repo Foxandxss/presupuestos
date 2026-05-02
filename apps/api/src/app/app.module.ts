@@ -11,6 +11,7 @@ import { PedidosModule } from '../pedidos/pedidos.module';
 import { ProyectosModule } from '../proyectos/proyectos.module';
 import { ReportesModule } from '../reportes/reportes.module';
 import { SearchModule } from '../search/search.module';
+import { UsuariosModule } from '../usuarios/usuarios.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -24,6 +25,7 @@ import { HealthController } from './health.controller';
     ReportesModule,
     SearchModule,
     InicioModule,
+    UsuariosModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: FormateadorErrores }],

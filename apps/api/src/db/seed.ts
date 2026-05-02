@@ -27,21 +27,27 @@ db.insert(meta)
 
 // --- Usuarios ----------------------------------------------------------------
 const usuariosSemilla = [
-  { email: 'admin@demo.com', password: 'admin123', rol: 'admin' as const },
+  {
+    email: 'admin@demo.com',
+    nombre: 'Admin Demo',
+    password: 'admin123',
+    rol: 'admin' as const,
+  },
   {
     email: 'consultor@demo.com',
+    nombre: 'Consultor Demo',
     password: 'consultor123',
     rol: 'consultor' as const,
   },
 ];
 
-for (const { email, password, rol } of usuariosSemilla) {
+for (const { email, nombre, password, rol } of usuariosSemilla) {
   const passwordHash = bcrypt.hashSync(password, 10);
   db.insert(usuarios)
-    .values({ email, passwordHash, rol })
+    .values({ email, nombre, passwordHash, rol })
     .onConflictDoUpdate({
       target: usuarios.email,
-      set: { passwordHash, rol, updatedAt: now },
+      set: { nombre, passwordHash, rol, updatedAt: now },
     })
     .run();
 }

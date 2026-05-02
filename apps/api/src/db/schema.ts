@@ -22,8 +22,19 @@ export const meta = sqliteTable('meta', {
 export const usuarios = sqliteTable('usuarios', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull().unique(),
+  nombre: text('nombre').notNull().default(''),
   passwordHash: text('password_hash').notNull(),
   rol: text('rol', { enum: ['admin', 'consultor'] }).notNull(),
+  // suspendido bloquea el login sin perder el registro. Se usa para deshabilitar
+  // temporalmente a un usuario (toggle desde la pagina de admin).
+  suspendido: integer('suspendido', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  // soft delete: cuando esta presente, el usuario queda fuera del listado
+  // (salvo flag explicito) y el login lo trata como inexistente. Usuarios
+  // referenciados por consumos/historial siguen existiendo en la fila para
+  // preservar el audit log via FK ON DELETE SET NULL.
+  eliminadoEn: text('eliminado_en'),
   createdAt: text('created_at')
     .notNull()
     .default(sql`(CURRENT_TIMESTAMP)`),

@@ -34,6 +34,13 @@ describe('construirBreadcrumbs', () => {
     ]);
   });
 
+  it('mapea /configuracion/usuarios a "Configuración / Usuarios"', () => {
+    expect(construirBreadcrumbs('/configuracion/usuarios')).toEqual([
+      { label: 'Configuración', ruta: null },
+      { label: 'Usuarios', ruta: null },
+    ]);
+  });
+
   it('añade segmento de detalle para /pedidos/142', () => {
     expect(construirBreadcrumbs('/pedidos/142')).toEqual([
       { label: 'Operativa', ruta: null },
@@ -60,6 +67,14 @@ describe('NAV_GROUPS', () => {
   it('marca el grupo Reportes como admin-only', () => {
     const reportes = NAV_GROUPS.find((g) => g.label === 'Reportes');
     expect(reportes?.rolesPermitidos).toEqual(['admin']);
+  });
+
+  it('marca el grupo Configuración como admin-only', () => {
+    const config = NAV_GROUPS.find((g) => g.label === 'Configuración');
+    expect(config?.rolesPermitidos).toEqual(['admin']);
+    expect(config?.items.map((i) => i.ruta)).toContain(
+      '/configuracion/usuarios',
+    );
   });
 
   it('deja Catálogo y Operativa visibles para todos los roles', () => {

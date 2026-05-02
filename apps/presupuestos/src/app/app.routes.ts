@@ -7,6 +7,7 @@ import { PerfilesTecnicosPage } from './catalogo/perfiles-tecnicos.page';
 import { ProveedoresPage } from './catalogo/proveedores.page';
 import { RecursosPage } from './catalogo/recursos.page';
 import { ServiciosPage } from './catalogo/servicios.page';
+import { UsuariosPage } from './configuracion/usuarios.page';
 import { ConsumosPage } from './consumos/consumos.page';
 import { PaginaErrorGenericoPage } from './errores/pagina-error-generico.page';
 import { PaginaNoEncontradaPage } from './errores/pagina-no-encontrada.page';
@@ -124,6 +125,18 @@ export const appRoutes: Routes = [
         path: 'facturacion',
         component: ReporteFacturacionPage,
         title: 'Facturación mensual · Presupuestos',
+      },
+    ],
+  },
+  {
+    path: 'configuracion',
+    canActivate: [authGuard, roleGuard('admin')],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'usuarios' },
+      {
+        path: 'usuarios',
+        component: UsuariosPage,
+        title: 'Usuarios · Presupuestos',
       },
     ],
   },

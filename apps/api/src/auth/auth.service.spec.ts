@@ -7,16 +7,25 @@ import { AuthService } from './auth.service';
 interface FakeUsuario {
   id: number;
   email: string;
+  nombre?: string;
   passwordHash: string;
   rol: 'admin' | 'consultor';
+  suspendido?: boolean;
+  eliminadoEn?: string | null;
 }
 
 function fakeDb(rows: FakeUsuario[]) {
+  const completos = rows.map((r) => ({
+    suspendido: false,
+    eliminadoEn: null,
+    nombre: '',
+    ...r,
+  }));
   return {
     select: () => ({
       from: () => ({
         where: () => ({
-          limit: async () => rows,
+          limit: async () => completos,
         }),
       }),
     }),
@@ -79,5 +88,47 @@ describe('AuthService', () => {
     await expect(
       service.login({ email: 'admin@x.com', password: 'incorrecta' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rechaza con 401 si el usuario está soft-deleted (eliminadoEn != null)', async () => {
+    const passwordHash = bcrypt.hashSync('admin123', 4);
+    const service = construirServicio(
+      fakeDb([
+        {
+          id: 1,
+          email: 'admin@x.com',
+          passwordHash,
+          rol: 'admin',
+          eliminadoEn: '2026-04-15T10:00:00.000Z',
+        },
+      ]),
+      jwt,
+    );
+
+    await expect(
+      service.login({ email: 'admin@x.com', password: 'admin123' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rechaza con 401 si el usuario está suspendido (mensaje específico)', async () => {
+    const passwordHash = bcrypt.hashSync('admin123', 4);
+    const service = construirServicio(
+      fakeDb([
+        {
+          id: 1,
+          email: 'admin@x.com',
+          passwordHash,
+          rol: 'admin',
+          suspendido: true,
+        },
+      ]),
+      jwt,
+    );
+
+    await expect(
+      service.login({ email: 'admin@x.com', password: 'admin123' }),
+    ).rejects.toMatchObject({
+      message: 'Tu cuenta está suspendida. Contacta con tu administrador.',
+    });
   });
 });

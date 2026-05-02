@@ -64,6 +64,13 @@
       "when": 1777714565008,
       "tag": "0008_slim_genesis",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1777718161355,
+      "tag": "0009_complete_praxagora",
+      "breakpoints": true
     }
   ]
 }

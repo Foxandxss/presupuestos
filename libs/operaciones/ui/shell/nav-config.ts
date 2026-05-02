@@ -46,6 +46,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { label: 'Facturación', icono: 'facturacion', ruta: '/reportes/facturacion' },
     ],
   },
+  {
+    label: 'Configuración',
+    rolesPermitidos: ['admin'],
+    items: [
+      { label: 'Usuarios', icono: 'usuariosAdmin', ruta: '/configuracion/usuarios' },
+    ],
+  },
 ];
 
 export interface Crumb {

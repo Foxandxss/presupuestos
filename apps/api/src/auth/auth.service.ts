@@ -24,13 +24,22 @@ export class AuthService {
       .where(eq(usuarios.email, email))
       .limit(1);
 
-    if (!usuario) {
+    if (!usuario || usuario.eliminadoEn !== null) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const ok = await bcrypt.compare(password, usuario.passwordHash);
     if (!ok) {
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (usuario.suspendido) {
+      // Mensaje especifico: el admin necesita saber por que no entra para
+      // pedir el desbloqueo. Validamos password antes para no revelar la
+      // existencia de cuentas suspendidas a credenciales aleatorias.
+      throw new UnauthorizedException(
+        'Tu cuenta está suspendida. Contacta con tu administrador.',
+      );
     }
 
     const payload: JwtPayload = {
