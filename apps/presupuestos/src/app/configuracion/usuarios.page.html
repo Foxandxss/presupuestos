@@ -87,7 +87,7 @@
       [rowsPerPageOptions]="[10, 25, 50]"
       [loading]="cargando()"
       dataKey="id"
-      [tableStyle]="{ 'min-width': '50rem' }"
+      [tableStyle]="{ 'min-width': '60rem' }"
       [styleClass]="'pre-lista__table is-' + densidad()"
       (onLazyLoad)="onLazyLoad($event)"
     >
@@ -98,6 +98,7 @@
           <th style="width: 8rem">Rol</th>
           <th style="width: 9rem">Estado</th>
           <th style="width: 9rem">Creado</th>
+          <th style="width: 12rem">Acciones</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
@@ -116,6 +117,46 @@
             </span>
           </td>
           <td>{{ formatearFecha(row.createdAt) }}</td>
+          <td (click)="$event.stopPropagation()">
+            @if (!row.eliminadoEn) {
+              <div class="pre-lista__actions">
+                <p-button
+                  icon="pi pi-pencil"
+                  size="small"
+                  severity="secondary"
+                  [text]="true"
+                  ariaLabel="Editar usuario"
+                  (onClick)="abrirEditar(row)"
+                ></p-button>
+                <p-button
+                  icon="pi pi-key"
+                  size="small"
+                  severity="secondary"
+                  [text]="true"
+                  ariaLabel="Resetear contraseña"
+                  (onClick)="abrirResetPassword(row)"
+                ></p-button>
+                <p-button
+                  [icon]="row.suspendido ? 'pi pi-unlock' : 'pi pi-lock'"
+                  size="small"
+                  severity="secondary"
+                  [text]="true"
+                  [ariaLabel]="row.suspendido ? 'Reactivar usuario' : 'Suspender usuario'"
+                  [disabled]="esUsuarioActual(row) && !row.suspendido"
+                  (onClick)="toggleSuspender(row)"
+                ></p-button>
+                <p-button
+                  icon="pi pi-trash"
+                  size="small"
+                  severity="danger"
+                  [text]="true"
+                  ariaLabel="Eliminar usuario"
+                  [disabled]="esUsuarioActual(row)"
+                  (onClick)="eliminar(row)"
+                ></p-button>
+              </div>
+            }
+          </td>
         </tr>
       </ng-template>
     </p-table>
@@ -124,72 +165,108 @@
 
 <pre-modal
   [visible]="dialogVisible()"
-  titulo="Nuevo usuario"
+  [titulo]="editandoId() === null ? 'Nuevo usuario' : 'Editar usuario'"
   size="md"
   (visibleChange)="dialogVisible.set($event)"
 >
-  <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-3">
-    <div class="flex flex-col gap-1">
-      <label for="usuario-email" class="text-sm text-slate-700">Email</label>
-      <input
-        pInputText
-        id="usuario-email"
-        type="email"
-        formControlName="email"
-        autocomplete="off"
-      />
-      @if (form.controls['email'].invalid && form.controls['email'].touched) {
-        <small class="text-red-600">Email obligatorio y con formato válido.</small>
-      }
-    </div>
-    <div class="flex flex-col gap-1">
-      <label for="usuario-nombre" class="text-sm text-slate-700">Nombre</label>
-      <input
-        pInputText
-        id="usuario-nombre"
-        type="text"
-        formControlName="nombre"
-        autocomplete="off"
-      />
-      @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
-        <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
-      }
-    </div>
-    <div class="flex flex-col gap-1">
-      <label for="usuario-rol" class="text-sm text-slate-700">Rol</label>
-      <p-select
-        inputId="usuario-rol"
-        [options]="opcionesRol"
-        optionLabel="label"
-        optionValue="value"
-        formControlName="rol"
-        appendTo="body"
-      ></p-select>
-    </div>
-    <div class="flex flex-col gap-1">
-      <label for="usuario-password" class="text-sm text-slate-700">
-        Contraseña inicial
-      </label>
-      <input
-        pInputText
-        id="usuario-password"
-        type="text"
-        formControlName="passwordInicial"
-        autocomplete="new-password"
-      />
-      <small class="text-slate-500">
-        Entrega la contraseña al usuario por canal externo. Mínimo 8 caracteres.
-      </small>
-      @if (
-        form.controls['passwordInicial'].invalid &&
-        form.controls['passwordInicial'].touched
-      ) {
-        <small class="text-red-600">
-          La contraseña inicial debe tener al menos 8 caracteres.
+  @if (editandoId() === null) {
+    <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-3">
+      <div class="flex flex-col gap-1">
+        <label for="usuario-email" class="text-sm text-slate-700">Email</label>
+        <input
+          pInputText
+          id="usuario-email"
+          type="email"
+          formControlName="email"
+          autocomplete="off"
+        />
+        @if (form.controls['email'].invalid && form.controls['email'].touched) {
+          <small class="text-red-600">Email obligatorio y con formato válido.</small>
+        }
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="usuario-nombre" class="text-sm text-slate-700">Nombre</label>
+        <input
+          pInputText
+          id="usuario-nombre"
+          type="text"
+          formControlName="nombre"
+          autocomplete="off"
+        />
+        @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
+          <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
+        }
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="usuario-rol" class="text-sm text-slate-700">Rol</label>
+        <p-select
+          inputId="usuario-rol"
+          [options]="opcionesRol"
+          optionLabel="label"
+          optionValue="value"
+          formControlName="rol"
+          appendTo="body"
+        ></p-select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="usuario-password" class="text-sm text-slate-700">
+          Contraseña inicial
+        </label>
+        <input
+          pInputText
+          id="usuario-password"
+          type="text"
+          formControlName="passwordInicial"
+          autocomplete="new-password"
+        />
+        <small class="text-slate-500">
+          Entrega la contraseña al usuario por canal externo. Mínimo 8 caracteres.
         </small>
-      }
-    </div>
-  </form>
+        @if (
+          form.controls['passwordInicial'].invalid &&
+          form.controls['passwordInicial'].touched
+        ) {
+          <small class="text-red-600">
+            La contraseña inicial debe tener al menos 8 caracteres.
+          </small>
+        }
+      </div>
+    </form>
+  } @else {
+    <form [formGroup]="editForm" (ngSubmit)="guardar()" class="flex flex-col gap-3">
+      <div class="flex flex-col gap-1">
+        <label for="usuario-edit-nombre" class="text-sm text-slate-700">Nombre</label>
+        <input
+          pInputText
+          id="usuario-edit-nombre"
+          type="text"
+          formControlName="nombre"
+          autocomplete="off"
+        />
+        @if (
+          editForm.controls['nombre'].invalid &&
+          editForm.controls['nombre'].touched
+        ) {
+          <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
+        }
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="usuario-edit-rol" class="text-sm text-slate-700">Rol</label>
+        <p-select
+          inputId="usuario-edit-rol"
+          [options]="opcionesRol"
+          optionLabel="label"
+          optionValue="value"
+          formControlName="rol"
+          appendTo="body"
+        ></p-select>
+        <small class="text-slate-500">
+          El email no se puede cambiar. Para resetear la contraseña usa el botón
+          dedicado en la fila.
+        </small>
+      </div>
+    </form>
+  }
   <div preModalFooter>
     <p-button
       type="button"
@@ -200,11 +277,100 @@
     ></p-button>
     <p-button
       type="button"
-      label="Crear usuario"
+      [label]="editandoId() === null ? 'Crear usuario' : 'Guardar cambios'"
       icon="pi pi-check"
       [loading]="guardando()"
-      [disabled]="form.invalid"
+      [disabled]="
+        editandoId() === null ? form.invalid : editForm.invalid
+      "
       (onClick)="guardar()"
     ></p-button>
+  </div>
+</pre-modal>
+
+<pre-modal
+  [visible]="resetPasswordVisible()"
+  titulo="Resetear contraseña"
+  size="md"
+  (visibleChange)="$event ? resetPasswordVisible.set(true) : cerrarResetPassword()"
+>
+  @if (resetPasswordTarget(); as target) {
+    @if (resetPasswordResultado(); as nueva) {
+      <div class="pre-usuarios__reset-result">
+        <p class="text-sm text-slate-700">
+          Contraseña actualizada para <strong>{{ target.email }}</strong>.
+          Cópiala y entrégala al usuario por canal externo: no podrás volver a
+          consultarla más tarde.
+        </p>
+        <code>{{ nueva }}</code>
+        <div class="flex justify-end">
+          <p-button
+            type="button"
+            label="Copiar al portapapeles"
+            icon="pi pi-copy"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="copiarPassword()"
+          ></p-button>
+        </div>
+      </div>
+    } @else {
+      <form
+        [formGroup]="resetForm"
+        (ngSubmit)="guardarResetPassword()"
+        class="flex flex-col gap-3"
+      >
+        <p class="text-sm text-slate-700">
+          Estableces una nueva contraseña para
+          <strong>{{ target.email }}</strong>. Tras guardar la podrás copiar
+          para entregársela por canal externo.
+        </p>
+        <div class="flex flex-col gap-1">
+          <label for="usuario-reset-password" class="text-sm text-slate-700">
+            Nueva contraseña
+          </label>
+          <input
+            pInputText
+            id="usuario-reset-password"
+            type="text"
+            formControlName="nuevaPassword"
+            autocomplete="new-password"
+          />
+          @if (
+            resetForm.controls['nuevaPassword'].invalid &&
+            resetForm.controls['nuevaPassword'].touched
+          ) {
+            <small class="text-red-600">
+              La contraseña debe tener al menos 8 caracteres.
+            </small>
+          }
+        </div>
+      </form>
+    }
+  }
+  <div preModalFooter>
+    @if (resetPasswordResultado() === null) {
+      <p-button
+        type="button"
+        label="Cancelar"
+        severity="secondary"
+        [text]="true"
+        (onClick)="cerrarResetPassword()"
+      ></p-button>
+      <p-button
+        type="button"
+        label="Resetear contraseña"
+        icon="pi pi-key"
+        [loading]="reseteandoPassword()"
+        [disabled]="resetForm.invalid"
+        (onClick)="guardarResetPassword()"
+      ></p-button>
+    } @else {
+      <p-button
+        type="button"
+        label="Cerrar"
+        (onClick)="cerrarResetPassword()"
+      ></p-button>
+    }
   </div>
 </pre-modal>

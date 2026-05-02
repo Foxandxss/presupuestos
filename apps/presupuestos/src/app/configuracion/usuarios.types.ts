@@ -30,3 +30,16 @@ export interface CrearUsuario {
   rol: Rol;
   passwordInicial: string;
 }
+
+export interface ActualizarUsuario {
+  nombre?: string;
+  rol?: Rol;
+}
+
+export interface ResetPassword {
+  nuevaPassword: string;
+}
+
+export interface SuspenderUsuario {
+  suspendido: boolean;
+}

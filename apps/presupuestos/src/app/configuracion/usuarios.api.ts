@@ -3,7 +3,10 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import type {
+  ActualizarUsuario,
   CrearUsuario,
+  ResetPassword,
+  SuspenderUsuario,
   Usuario,
   UsuariosFiltros,
   UsuariosPagina,
@@ -28,5 +31,21 @@ export class UsuariosApi {
 
   create(dto: CrearUsuario): Observable<Usuario> {
     return this.http.post<Usuario>(this.base, dto);
+  }
+
+  update(id: number, dto: ActualizarUsuario): Observable<Usuario> {
+    return this.http.patch<Usuario>(`${this.base}/${id}`, dto);
+  }
+
+  resetPassword(id: number, dto: ResetPassword): Observable<Usuario> {
+    return this.http.post<Usuario>(`${this.base}/${id}/reset-password`, dto);
+  }
+
+  suspender(id: number, dto: SuspenderUsuario): Observable<Usuario> {
+    return this.http.patch<Usuario>(`${this.base}/${id}/suspender`, dto);
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
   }
 }

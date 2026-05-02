@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsInt,
@@ -41,6 +42,42 @@ export class CrearUsuarioDto {
   @MinLength(8)
   @MaxLength(200)
   passwordInicial!: string;
+}
+
+export class ActualizarUsuarioDto {
+  @ApiPropertyOptional({ minLength: 2, maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  nombre?: string;
+
+  @ApiPropertyOptional({ enum: ROLES })
+  @IsOptional()
+  @IsIn(ROLES)
+  rol?: Rol;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({
+    minLength: 8,
+    maxLength: 200,
+    description:
+      'Nueva contraseña que el admin entrega al usuario por canal externo.',
+  })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(200)
+  nuevaPassword!: string;
+}
+
+export class SuspenderUsuarioDto {
+  @ApiProperty({
+    description:
+      'true para suspender el usuario, false para reactivarlo.',
+  })
+  @IsBoolean()
+  suspendido!: boolean;
 }
 
 export class UsuariosQuery {

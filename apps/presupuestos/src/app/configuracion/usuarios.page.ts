@@ -25,7 +25,7 @@ import { SelectModule } from 'primeng/select';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 
 import { Rol as RolEnum } from '@operaciones/dominio';
-import { ModalComponent } from '@operaciones/ui/dialogos';
+import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -36,6 +36,7 @@ import {
 } from '@operaciones/ui/listado';
 import { PageHeaderComponent } from '@operaciones/ui/shell';
 
+import { AuthService } from '../auth/auth.service';
 import type { Rol } from '../auth/auth.types';
 import {
   leerDensidadInicial,
@@ -104,6 +105,23 @@ const ROLES_VALIDOS = new Set<Rol>(['admin', 'consultor']);
         background: rgb(226 232 240);
         color: rgb(51 65 85);
       }
+      .pre-usuarios__reset-result {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--surface-100, rgb(248 250 252));
+      }
+      .pre-usuarios__reset-result code {
+        display: block;
+        padding: 8px 12px;
+        background: white;
+        border: 1px solid var(--surface-200, rgb(226 232 240));
+        border-radius: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        word-break: break-all;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -112,6 +130,8 @@ export class UsuariosPage {
   private readonly api = inject(UsuariosApi);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(MessageService);
+  private readonly confirm = inject(PreConfirm);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -123,7 +143,15 @@ export class UsuariosPage {
   protected readonly total = signal(0);
   protected readonly items = signal<Usuario[]>([]);
   protected readonly dialogVisible = signal(false);
+  protected readonly editandoId = signal<number | null>(null);
   protected readonly guardando = signal(false);
+
+  protected readonly resetPasswordVisible = signal(false);
+  protected readonly resetPasswordTarget = signal<Usuario | null>(null);
+  protected readonly reseteandoPassword = signal(false);
+  // Cuando el reset es exitoso guardamos la password generada para mostrarla
+  // y permitir copiarla al portapapeles. Se borra al cerrar el modal.
+  protected readonly resetPasswordResultado = signal<string | null>(null);
 
   protected readonly densidad = signal<DensidadLista>(
     leerDensidadInicial(SECCION),
@@ -163,6 +191,15 @@ export class UsuariosPage {
     passwordInicial: ['', [Validators.required, Validators.minLength(8)]],
   });
 
+  protected readonly editForm: FormGroup = this.fb.group({
+    nombre: ['', [Validators.required, Validators.minLength(2)]],
+    rol: ['consultor' as Rol, [Validators.required]],
+  });
+
+  protected readonly resetForm: FormGroup = this.fb.group({
+    nuevaPassword: ['', [Validators.required, Validators.minLength(8)]],
+  });
+
   constructor() {
     effect(() => {
       const filtros = {
@@ -199,6 +236,10 @@ export class UsuariosPage {
     if (u.eliminadoEn) return { label: 'Eliminado', clase: 'eliminado' };
     if (u.suspendido) return { label: 'Suspendido', clase: 'suspendido' };
     return { label: 'Activo', clase: 'activo' };
+  }
+
+  protected esUsuarioActual(u: Usuario): boolean {
+    return this.auth.usuario()?.id === u.id;
   }
 
   protected onLazyLoad(event: TableLazyLoadEvent): void {
@@ -241,6 +282,7 @@ export class UsuariosPage {
   }
 
   protected abrirCrear(): void {
+    this.editandoId.set(null);
     this.form.reset({
       email: '',
       nombre: '',
@@ -250,11 +292,25 @@ export class UsuariosPage {
     this.dialogVisible.set(true);
   }
 
+  protected abrirEditar(row: Usuario): void {
+    this.editandoId.set(row.id);
+    this.editForm.reset({ nombre: row.nombre, rol: row.rol });
+    this.dialogVisible.set(true);
+  }
+
   protected cerrarDialog(): void {
     this.dialogVisible.set(false);
   }
 
   protected guardar(): void {
+    if (this.editandoId() === null) {
+      this.guardarCrear();
+    } else {
+      this.guardarEditar();
+    }
+  }
+
+  private guardarCrear(): void {
     if (this.form.invalid || this.guardando()) {
       this.form.markAllAsTouched();
       return;
@@ -275,8 +331,6 @@ export class UsuariosPage {
           summary: 'Usuario creado',
           detail: `${creado.email} ya puede iniciar sesión.`,
         });
-        // Recargar la pagina actual: el nuevo usuario tiene el id mas alto y
-        // por lo tanto aparece primero (orden por id desc).
         this.first.set(0);
         this.cargar({
           q: this.qFiltro(),
@@ -293,6 +347,164 @@ export class UsuariosPage {
           detail: extraerMensaje(err),
         });
       },
+    });
+  }
+
+  private guardarEditar(): void {
+    const id = this.editandoId();
+    if (id === null) return;
+    if (this.editForm.invalid || this.guardando()) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
+    this.guardando.set(true);
+    const dto = {
+      nombre: (this.editForm.value.nombre as string).trim(),
+      rol: this.editForm.value.rol as Rol,
+    };
+    this.api.update(id, dto).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.dialogVisible.set(false);
+        this.toast.add({
+          severity: 'success',
+          summary: 'Usuario actualizado',
+        });
+        this.recargarPaginaActual();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.guardando.set(false);
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo actualizar el usuario',
+          detail: extraerMensaje(err),
+        });
+      },
+    });
+  }
+
+  protected abrirResetPassword(row: Usuario): void {
+    this.resetPasswordTarget.set(row);
+    this.resetPasswordResultado.set(null);
+    this.resetForm.reset({ nuevaPassword: '' });
+    this.resetPasswordVisible.set(true);
+  }
+
+  protected cerrarResetPassword(): void {
+    this.resetPasswordVisible.set(false);
+    this.resetPasswordTarget.set(null);
+    this.resetPasswordResultado.set(null);
+  }
+
+  protected guardarResetPassword(): void {
+    const target = this.resetPasswordTarget();
+    if (!target) return;
+    if (this.resetForm.invalid || this.reseteandoPassword()) {
+      this.resetForm.markAllAsTouched();
+      return;
+    }
+    const nuevaPassword = this.resetForm.value.nuevaPassword as string;
+    this.reseteandoPassword.set(true);
+    this.api.resetPassword(target.id, { nuevaPassword }).subscribe({
+      next: () => {
+        this.reseteandoPassword.set(false);
+        // No cerramos el modal: enseñamos la nueva password con boton de copia
+        // para que el admin pueda entregarsela al usuario por canal externo.
+        this.resetPasswordResultado.set(nuevaPassword);
+        this.toast.add({
+          severity: 'success',
+          summary: 'Contraseña actualizada',
+          detail: 'Cópiala y entrégala al usuario por canal externo.',
+        });
+      },
+      error: (err: HttpErrorResponse) => {
+        this.reseteandoPassword.set(false);
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo resetear la contraseña',
+          detail: extraerMensaje(err),
+        });
+      },
+    });
+  }
+
+  protected async copiarPassword(): Promise<void> {
+    const password = this.resetPasswordResultado();
+    if (!password) return;
+    try {
+      await navigator.clipboard.writeText(password);
+      this.toast.add({
+        severity: 'info',
+        summary: 'Contraseña copiada al portapapeles',
+      });
+    } catch {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'No se pudo copiar automáticamente',
+        detail: 'Selecciona el texto manualmente.',
+      });
+    }
+  }
+
+  protected async toggleSuspender(row: Usuario): Promise<void> {
+    const accion = row.suspendido ? 'reactivar' : 'suspender';
+    const ok = await this.confirm.normal({
+      titulo: row.suspendido ? 'Reactivar usuario' : 'Suspender usuario',
+      mensaje: row.suspendido
+        ? `¿Reactivar a "${row.email}"? Podrá volver a iniciar sesión.`
+        : `¿Suspender a "${row.email}"? No podrá iniciar sesión hasta que lo reactives.`,
+      accionLabel: row.suspendido ? 'Reactivar' : 'Suspender',
+    });
+    if (!ok) return;
+    this.api.suspender(row.id, { suspendido: !row.suspendido }).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: row.suspendido ? 'Usuario reactivado' : 'Usuario suspendido',
+        });
+        this.recargarPaginaActual();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: `No se pudo ${accion} el usuario`,
+          detail: extraerMensaje(err),
+        });
+      },
+    });
+  }
+
+  protected async eliminar(row: Usuario): Promise<void> {
+    const ok = await this.confirm.destructivo({
+      titulo: 'Eliminar usuario',
+      mensaje: `¿Eliminar a "${row.email}"? Quedará oculto del listado y no podrá iniciar sesión. Sus consumos y movimientos históricos se conservan.`,
+      accionLabel: 'Eliminar usuario',
+    });
+    if (!ok) return;
+    this.api.delete(row.id).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Usuario eliminado',
+        });
+        this.recargarPaginaActual();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'No se pudo eliminar el usuario',
+          detail: extraerMensaje(err),
+        });
+      },
+    });
+  }
+
+  private recargarPaginaActual(): void {
+    this.cargar({
+      q: this.qFiltro(),
+      rol: this.rolFiltro(),
+      first: this.first(),
+      rows: this.filasPorPagina(),
     });
   }
 
