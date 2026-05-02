@@ -203,6 +203,37 @@ export const lineasPedido = sqliteTable('lineas_pedido', {
 export type LineaPedido = typeof lineasPedido.$inferSelect;
 export type LineaPedidoNueva = typeof lineasPedido.$inferInsert;
 
+export const ACCIONES_HISTORIAL_PEDIDO = [
+  'solicitar',
+  'aprobar',
+  'rechazar',
+  'cancelar',
+  'consumo_inicial',
+  'consumo_completo',
+  'consumo_borrado',
+] as const;
+
+export type AccionHistorialPedido = (typeof ACCIONES_HISTORIAL_PEDIDO)[number];
+
+export const historialPedido = sqliteTable('historial_pedido', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  pedidoId: integer('pedido_id')
+    .notNull()
+    .references(() => pedidos.id, { onDelete: 'cascade' }),
+  estadoAnterior: text('estado_anterior', { enum: ESTADOS_PEDIDO }).notNull(),
+  estadoNuevo: text('estado_nuevo', { enum: ESTADOS_PEDIDO }).notNull(),
+  accion: text('accion', { enum: ACCIONES_HISTORIAL_PEDIDO }).notNull(),
+  usuarioId: integer('usuario_id').references(() => usuarios.id, {
+    onDelete: 'set null',
+  }),
+  fecha: text('fecha')
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+});
+
+export type HistorialPedido = typeof historialPedido.$inferSelect;
+export type HistorialPedidoNuevo = typeof historialPedido.$inferInsert;
+
 export const consumosMensuales = sqliteTable(
   'consumos_mensuales',
   {

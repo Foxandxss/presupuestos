@@ -9,6 +9,21 @@ export type EstadoPedido =
 
 export type AccionPedido = 'solicitar' | 'aprobar' | 'rechazar' | 'cancelar';
 
+export type AccionHistorialPedido =
+  | AccionPedido
+  | 'consumo_inicial'
+  | 'consumo_completo'
+  | 'consumo_borrado';
+
+export interface HistorialPedido {
+  id: number;
+  estadoAnterior: EstadoPedido;
+  estadoNuevo: EstadoPedido;
+  accion: AccionHistorialPedido;
+  usuarioId: number | null;
+  fecha: string;
+}
+
 export interface LineaPedido {
   id: number;
   pedidoId: number;
@@ -30,6 +45,7 @@ export interface Pedido {
   fechaSolicitud: string | null;
   fechaAprobacion: string | null;
   lineas: LineaPedido[];
+  historial: HistorialPedido[];
   createdAt: string;
   updatedAt: string;
 }

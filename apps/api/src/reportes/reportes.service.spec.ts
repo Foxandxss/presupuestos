@@ -6,6 +6,7 @@ import {
   recursos,
   servicios,
 } from '../db/schema';
+import { HistorialPedidoService } from '../pedidos/historial-pedido.service';
 import { PedidosService } from '../pedidos/pedidos.service';
 import { ResolutorTarifa } from '../pedidos/resolutor-tarifa';
 import { ProyectosService } from '../proyectos/proyectos.service';
@@ -24,9 +25,10 @@ describe('ReportesService', () => {
     db = created.db;
     close = created.close;
     service = new ReportesService(db);
-    pedidosService = new PedidosService(db, new ResolutorTarifa(db));
+    const historial = new HistorialPedidoService(db);
+    pedidosService = new PedidosService(db, new ResolutorTarifa(db), historial);
     proyectosService = new ProyectosService(db);
-    consumosService = new ConsumosService(db);
+    consumosService = new ConsumosService(db, historial);
   });
 
   afterEach(() => {

@@ -16,6 +16,7 @@ import {
   type ConsumoMensual,
   type EstadoPedido,
 } from '../db/schema';
+import { HistorialPedidoService } from '../pedidos/historial-pedido.service';
 import { MaquinaEstadosPedido } from '../pedidos/maquina-estados-pedido';
 import { ConsumoDto, ConsumoFiltrosQuery, CrearConsumoDto } from './dto/consumo.dto';
 import {
@@ -25,7 +26,10 @@ import {
 
 @Injectable()
 export class ConsumosService {
-  constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: Database,
+    private readonly historial: HistorialPedidoService,
+  ) {}
 
   list(filtros: ConsumoFiltrosQuery = {}): ConsumoDto[] {
     const condiciones = [];
@@ -120,24 +124,25 @@ export class ConsumosService {
       .returning()
       .all();
 
-    this.aplicarAutoTransicion(linea.pedidoId, pedido.estado);
+    this.aplicarAutoTransicion(linea.pedidoId, pedido.estado, usuarioId);
 
     return this.adaptar(creado, linea.pedidoId);
   }
 
-  delete(id: number): void {
+  delete(id: number, usuarioId?: number): void {
     const consumo = this.requireConsumo(id);
     const linea = this.lineaDe(consumo.lineaPedidoId);
     const pedido = this.pedidoOrNull(linea.pedidoId);
     this.db.delete(consumosMensuales).where(eq(consumosMensuales.id, id)).run();
     if (pedido) {
-      this.recalcularEstadoTrasBorrar(linea.pedidoId, pedido.estado);
+      this.recalcularEstadoTrasBorrar(linea.pedidoId, pedido.estado, usuarioId);
     }
   }
 
   private aplicarAutoTransicion(
     pedidoId: number,
     estadoActual: EstadoPedido,
+    usuarioId?: number,
   ): void {
     const lineasParaMaquina = this.lineasConTotales(pedidoId);
     const intermedio =
@@ -149,12 +154,24 @@ export class ConsumosService {
 
     if (siguiente !== estadoActual) {
       this.actualizarEstado(pedidoId, siguiente);
+      // Aprobado -> EnEjecucion (primer consumo) y EnEjecucion -> Consumido
+      // (todas las lineas saturadas) son los dos saltos posibles aqui.
+      const accion =
+        siguiente === 'Consumido' ? 'consumo_completo' : 'consumo_inicial';
+      this.historial.registrar({
+        pedidoId,
+        estadoAnterior: estadoActual,
+        estadoNuevo: siguiente,
+        accion,
+        usuarioId,
+      });
     }
   }
 
   private recalcularEstadoTrasBorrar(
     pedidoId: number,
     estadoActual: EstadoPedido,
+    usuarioId?: number,
   ): void {
     if (estadoActual !== 'EnEjecucion' && estadoActual !== 'Consumido') {
       return;
@@ -166,6 +183,13 @@ export class ConsumosService {
     );
     if (siguiente !== estadoActual) {
       this.actualizarEstado(pedidoId, siguiente);
+      this.historial.registrar({
+        pedidoId,
+        estadoAnterior: estadoActual,
+        estadoNuevo: siguiente,
+        accion: 'consumo_borrado',
+        usuarioId,
+      });
     }
   }
 

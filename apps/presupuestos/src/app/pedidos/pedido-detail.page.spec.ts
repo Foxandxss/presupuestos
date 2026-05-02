@@ -48,6 +48,7 @@ const PEDIDO: Pedido = {
       updatedAt: '2026-03-01',
     },
   ],
+  historial: [],
   createdAt: '2026-03-01',
   updatedAt: '2026-03-05',
 };

@@ -63,7 +63,10 @@ export class ConsumosController {
   @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
-  delete(@Param('id', ParseIntPipe) id: number): void {
-    this.service.delete(id);
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user?: JwtPayload,
+  ): void {
+    this.service.delete(id, user?.sub);
   }
 }

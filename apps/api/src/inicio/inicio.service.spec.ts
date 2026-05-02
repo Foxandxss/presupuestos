@@ -10,6 +10,7 @@ import {
   servicios,
   usuarios,
 } from '../db/schema';
+import { HistorialPedidoService } from '../pedidos/historial-pedido.service';
 import { PedidosService } from '../pedidos/pedidos.service';
 import { ResolutorTarifa } from '../pedidos/resolutor-tarifa';
 import { ConsumosService } from '../consumos/consumos.service';
@@ -27,8 +28,9 @@ describe('InicioService (integration)', () => {
     db = created.db;
     close = created.close;
     service = new InicioService(db);
-    consumos = new ConsumosService(db);
-    pedidosService = new PedidosService(db, new ResolutorTarifa(db));
+    const historial = new HistorialPedidoService(db);
+    consumos = new ConsumosService(db, historial);
+    pedidosService = new PedidosService(db, new ResolutorTarifa(db), historial);
   });
 
   afterEach(() => {

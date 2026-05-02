@@ -9,7 +9,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { ESTADOS_PEDIDO, type EstadoPedido } from '../../db/schema';
+import {
+  ACCIONES_HISTORIAL_PEDIDO,
+  ESTADOS_PEDIDO,
+  type AccionHistorialPedido,
+  type EstadoPedido,
+} from '../../db/schema';
 import {
   CrearLineaPedidoDto,
   LineaPedidoDto,
@@ -36,6 +41,26 @@ export class CrearPedidoDto {
 
 export class ActualizarPedidoDto extends PartialType(CrearPedidoDto) {}
 
+export class HistorialPedidoDto {
+  @ApiProperty()
+  id!: number;
+
+  @ApiProperty({ enum: ESTADOS_PEDIDO })
+  estadoAnterior!: EstadoPedido;
+
+  @ApiProperty({ enum: ESTADOS_PEDIDO })
+  estadoNuevo!: EstadoPedido;
+
+  @ApiProperty({ enum: ACCIONES_HISTORIAL_PEDIDO })
+  accion!: AccionHistorialPedido;
+
+  @ApiProperty({ nullable: true })
+  usuarioId!: number | null;
+
+  @ApiProperty()
+  fecha!: string;
+}
+
 export class PedidoDto {
   @ApiProperty()
   id!: number;
@@ -57,6 +82,9 @@ export class PedidoDto {
 
   @ApiProperty({ type: [LineaPedidoDto] })
   lineas!: LineaPedidoDto[];
+
+  @ApiProperty({ type: [HistorialPedidoDto] })
+  historial!: HistorialPedidoDto[];
 
   @ApiProperty()
   createdAt!: string;

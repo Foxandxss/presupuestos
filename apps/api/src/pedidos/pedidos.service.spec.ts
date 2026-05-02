@@ -11,6 +11,8 @@ import {
   proyectos,
   servicios,
 } from '../db/schema';
+import { historialPedido, usuarios } from '../db/schema';
+import { HistorialPedidoService } from './historial-pedido.service';
 import { TransicionIlegalError } from './maquina-estados-pedido';
 import { PedidosService } from './pedidos.service';
 import { ResolutorTarifa } from './resolutor-tarifa';
@@ -19,6 +21,7 @@ describe('PedidosService', () => {
   let close: () => void;
   let service: PedidosService;
   let resolutor: ResolutorTarifa;
+  let historial: HistorialPedidoService;
   let db: ReturnType<typeof makeTestDb>['db'];
 
   beforeEach(() => {
@@ -26,7 +29,8 @@ describe('PedidosService', () => {
     db = created.db;
     close = created.close;
     resolutor = new ResolutorTarifa(db);
-    service = new PedidosService(db, resolutor);
+    historial = new HistorialPedidoService(db);
+    service = new PedidosService(db, resolutor, historial);
   });
 
   afterEach(() => {
@@ -325,6 +329,55 @@ describe('PedidosService', () => {
       service.transitar(pedido.id, 'aprobar');
       const cancelado = service.transitar(pedido.id, 'cancelar');
       expect(cancelado.estado).toBe('Cancelado');
+    });
+
+    it('cada transición manual escribe una fila en historial_pedido', () => {
+      const { pedido } = setupConLinea();
+      const [usuario] = db
+        .insert(usuarios)
+        .values({
+          email: 'admin@demo.com',
+          passwordHash: 'x',
+          rol: 'admin',
+        })
+        .returning()
+        .all();
+      service.transitar(pedido.id, 'solicitar', usuario.id);
+      service.transitar(pedido.id, 'aprobar', usuario.id);
+      const filas = db.select().from(historialPedido).all();
+      expect(filas).toHaveLength(2);
+      expect(filas[0]).toMatchObject({
+        pedidoId: pedido.id,
+        estadoAnterior: 'Borrador',
+        estadoNuevo: 'Solicitado',
+        accion: 'solicitar',
+        usuarioId: usuario.id,
+      });
+      expect(filas[1]).toMatchObject({
+        estadoAnterior: 'Solicitado',
+        estadoNuevo: 'Aprobado',
+        accion: 'aprobar',
+        usuarioId: usuario.id,
+      });
+    });
+
+    it('get(id) devuelve historial cronológico en PedidoDto.historial', () => {
+      const { pedido } = setupConLinea();
+      service.transitar(pedido.id, 'solicitar');
+      service.transitar(pedido.id, 'rechazar');
+      const dto = service.get(pedido.id);
+      expect(dto.historial.map((h) => h.accion)).toEqual([
+        'solicitar',
+        'rechazar',
+      ]);
+      expect(dto.historial[1].estadoNuevo).toBe('Rechazado');
+    });
+
+    it('list() omite el historial (solo se popula en get)', () => {
+      const { pedido } = setupConLinea();
+      service.transitar(pedido.id, 'solicitar');
+      const [enLista] = service.list();
+      expect(enLista.historial).toEqual([]);
     });
   });
 

@@ -112,6 +112,7 @@
         [fechaSolicitud]="p.fechaSolicitud"
         [fechaAprobacion]="p.fechaAprobacion"
         [fechaTerminacion]="fechaTerminacion()"
+        [estadoPrevioTerminal]="estadoPrevioTerminal()"
       />
     </section>
 
@@ -177,6 +178,38 @@
                   </span>
                 </div>
               </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </section>
+
+    <section class="pre-detail__seccion">
+      <h2 class="pre-detail__seccion-titulo">
+        Histórico de transiciones ({{ historialFilas().length }})
+      </h2>
+      @if (historialFilas().length === 0) {
+        <p class="pre-detail__vacio">
+          Aún no hay transiciones registradas.
+        </p>
+      } @else {
+        <p-table
+          [value]="historialFilas()"
+          dataKey="id"
+          styleClass="pre-detail__tabla"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 12rem">Fecha</th>
+              <th style="width: 12rem">Acción</th>
+              <th>Transición</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-h>
+            <tr>
+              <td>{{ h.fechaCorta ?? h.fecha }}</td>
+              <td>{{ h.accionLabel }}</td>
+              <td>{{ h.estadoAnterior }} → {{ h.estadoNuevo }}</td>
             </tr>
           </ng-template>
         </p-table>

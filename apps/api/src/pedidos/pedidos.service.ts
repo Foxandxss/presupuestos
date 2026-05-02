@@ -16,6 +16,7 @@ import {
   proveedores,
   proyectos,
   type EstadoPedido,
+  type HistorialPedido,
   type LineaPedido,
   type Pedido,
 } from '../db/schema';
@@ -29,6 +30,7 @@ import {
   CrearPedidoDto,
   PedidoDto,
 } from './dto/pedido.dto';
+import { HistorialPedidoService } from './historial-pedido.service';
 import {
   AccionPedido,
   MaquinaEstadosPedido,
@@ -45,6 +47,7 @@ export class PedidosService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly resolutorTarifa: ResolutorTarifa,
+    private readonly historial: HistorialPedidoService,
   ) {}
 
   list(): PedidoDto[] {
@@ -64,13 +67,14 @@ export class PedidosService {
       lista.push(l);
       porPedido.set(l.pedidoId, lista);
     }
-    return filas.map((p) => this.adaptar(p, porPedido.get(p.id) ?? []));
+    return filas.map((p) => this.adaptar(p, porPedido.get(p.id) ?? [], []));
   }
 
   get(id: number): PedidoDto {
     const pedido = this.requirePedido(id);
     const lineas = this.lineasDe(id);
-    return this.adaptar(pedido, lineas);
+    const historial = this.historial.listar(id);
+    return this.adaptar(pedido, lineas, historial);
   }
 
   create(dto: CrearPedidoDto): PedidoDto {
@@ -143,7 +147,7 @@ export class PedidosService {
     this.db.delete(pedidos).where(eq(pedidos.id, id)).run();
   }
 
-  transitar(id: number, accion: AccionPedido): PedidoDto {
+  transitar(id: number, accion: AccionPedido, usuarioId?: number): PedidoDto {
     const actual = this.requirePedido(id);
     const siguiente = MaquinaEstadosPedido.aplicar(actual.estado, accion);
     const updates: Partial<Pedido> = { estado: siguiente };
@@ -174,6 +178,13 @@ export class PedidosService {
       .set({ ...updates, updatedAt: sql`(CURRENT_TIMESTAMP)` })
       .where(eq(pedidos.id, id))
       .run();
+    this.historial.registrar({
+      pedidoId: id,
+      estadoAnterior: actual.estado,
+      estadoNuevo: siguiente,
+      accion,
+      usuarioId,
+    });
     return this.get(id);
   }
 
@@ -386,7 +397,11 @@ export class PedidosService {
     }
   }
 
-  private adaptar(p: Pedido, lineas: LineaPedido[]): PedidoDto {
+  private adaptar(
+    p: Pedido,
+    lineas: LineaPedido[],
+    historial: HistorialPedido[],
+  ): PedidoDto {
     return {
       id: p.id,
       proyectoId: p.proyectoId,
@@ -395,6 +410,14 @@ export class PedidosService {
       fechaSolicitud: p.fechaSolicitud ?? null,
       fechaAprobacion: p.fechaAprobacion ?? null,
       lineas,
+      historial: historial.map((h) => ({
+        id: h.id,
+        estadoAnterior: h.estadoAnterior,
+        estadoNuevo: h.estadoNuevo,
+        accion: h.accion,
+        usuarioId: h.usuarioId ?? null,
+        fecha: h.fecha,
+      })),
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
     };

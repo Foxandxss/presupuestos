@@ -45,11 +45,37 @@ import type { Proyecto } from '../proyectos/proyectos.types';
 
 import { PedidosApi } from './pedidos.api';
 import type {
+  AccionHistorialPedido,
   AccionPedido,
   EstadoPedido,
+  HistorialPedido,
   LineaPedido,
   Pedido,
 } from './pedidos.types';
+
+interface HistorialFila {
+  id: number;
+  fecha: string;
+  fechaCorta: string | null;
+  estadoAnterior: string;
+  estadoNuevo: string;
+  accionLabel: string;
+}
+
+const ACCIONES_HISTORIAL_LABEL: Record<AccionHistorialPedido, string> = {
+  solicitar: 'Solicitar',
+  aprobar: 'Aprobar',
+  rechazar: 'Rechazar',
+  cancelar: 'Cancelar',
+  consumo_inicial: 'Primer consumo',
+  consumo_completo: 'Líneas saturadas',
+  consumo_borrado: 'Consumo borrado',
+};
+
+const ESTADOS_TERMINALES: ReadonlySet<EstadoPedido> = new Set([
+  'Rechazado',
+  'Cancelado',
+]);
 
 interface AccionPrimaria {
   accion: AccionPedido;
@@ -246,13 +272,42 @@ export class PedidoDetailPage {
     return `Pedido #${p.id} · ${proy}`;
   });
 
-  protected readonly fechaTerminacion = computed<string | null>(() => {
+  /**
+   * Última transición a estado terminal (Rechazado/Cancelado) registrada en el
+   * historial. Si el pedido es terminal pero no hay entrada (pedido pre-#16
+   * sin auditoría), cae a `updatedAt` como aproximación.
+   */
+  private readonly entradaTerminal = computed<HistorialPedido | null>(() => {
     const p = this.pedido();
-    if (!p) return null;
-    if (p.estado === 'Rechazado' || p.estado === 'Cancelado') {
-      return p.updatedAt;
+    if (!p || !ESTADOS_TERMINALES.has(p.estado)) return null;
+    for (let i = p.historial.length - 1; i >= 0; i--) {
+      const h = p.historial[i];
+      if (h.estadoNuevo === p.estado) return h;
     }
     return null;
+  });
+
+  protected readonly fechaTerminacion = computed<string | null>(() => {
+    const p = this.pedido();
+    if (!p || !ESTADOS_TERMINALES.has(p.estado)) return null;
+    return this.entradaTerminal()?.fecha ?? p.updatedAt;
+  });
+
+  protected readonly estadoPrevioTerminal = computed<EstadoPedido | null>(
+    () => this.entradaTerminal()?.estadoAnterior ?? null,
+  );
+
+  protected readonly historialFilas = computed<HistorialFila[]>(() => {
+    const p = this.pedido();
+    if (!p) return [];
+    return p.historial.map((h) => ({
+      id: h.id,
+      fecha: h.fecha,
+      fechaCorta: formatearFechaCorta(h.fecha),
+      estadoAnterior: etiquetaEstadoPedido(h.estadoAnterior),
+      estadoNuevo: etiquetaEstadoPedido(h.estadoNuevo),
+      accionLabel: ACCIONES_HISTORIAL_LABEL[h.accion],
+    }));
   });
 
   constructor() {

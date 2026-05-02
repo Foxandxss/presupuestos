@@ -19,6 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { JwtPayload } from '../auth/jwt-payload';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -85,8 +87,9 @@ export class PedidosController {
   transitar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: TransicionPedidoDto,
+    @CurrentUser() user?: JwtPayload,
   ): PedidoDto {
-    return this.service.transitar(id, dto.accion);
+    return this.service.transitar(id, dto.accion, user?.sub);
   }
 
   @Get(':id/lineas')

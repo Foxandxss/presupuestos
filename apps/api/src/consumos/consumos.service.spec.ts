@@ -2,12 +2,15 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { makeTestDb } from '../catalogo/testing/db';
 import {
+  historialPedido,
   perfilesTecnicos,
   proveedores,
   proyectos,
   recursos,
   servicios,
+  usuarios,
 } from '../db/schema';
+import { HistorialPedidoService } from '../pedidos/historial-pedido.service';
 import { PedidosService } from '../pedidos/pedidos.service';
 import { ResolutorTarifa } from '../pedidos/resolutor-tarifa';
 import { ConsumosService } from './consumos.service';
@@ -23,8 +26,9 @@ describe('ConsumosService', () => {
     const created = makeTestDb();
     db = created.db;
     close = created.close;
-    pedidosService = new PedidosService(db, new ResolutorTarifa(db));
-    service = new ConsumosService(db);
+    const historial = new HistorialPedidoService(db);
+    pedidosService = new PedidosService(db, new ResolutorTarifa(db), historial);
+    service = new ConsumosService(db, historial);
   });
 
   afterEach(() => {
@@ -410,5 +414,137 @@ describe('ConsumosService', () => {
 
   it('get lanza 404 con id inexistente', () => {
     expect(() => service.get(999)).toThrow(NotFoundException);
+  });
+
+  describe('historial de auto-transiciones', () => {
+    function crearUsuario(): number {
+      const [row] = db
+        .insert(usuarios)
+        .values({
+          email: 'consultor@demo.com',
+          passwordHash: 'x',
+          rol: 'consultor',
+        })
+        .returning()
+        .all();
+      return row.id;
+    }
+
+    it('Aprobado→EnEjecucion escribe accion consumo_inicial', () => {
+      const { lineaId, recursoId, pedidoId } = setupPedidoAprobado();
+      const usuarioId = crearUsuario();
+      service.create(
+        {
+          lineaPedidoId: lineaId,
+          recursoId,
+          mes: 5,
+          anio: 2026,
+          horasConsumidas: 20,
+        },
+        usuarioId,
+      );
+      const filas = db.select().from(historialPedido).all();
+      // 2 manuales (solicitar/aprobar) + 1 auto (consumo_inicial).
+      expect(filas).toHaveLength(3);
+      const ultima = filas.find(
+        (f) => f.pedidoId === pedidoId && f.accion === 'consumo_inicial',
+      );
+      expect(ultima).toMatchObject({
+        estadoAnterior: 'Aprobado',
+        estadoNuevo: 'EnEjecucion',
+        usuarioId,
+      });
+    });
+
+    it('EnEjecucion→Consumido escribe accion consumo_completo', () => {
+      const { lineaId, recursoId } = setupPedidoAprobado({
+        horasOfertadas: 50,
+      });
+      // Primer consumo parcial: Aprobado -> EnEjecucion (consumo_inicial).
+      service.create({
+        lineaPedidoId: lineaId,
+        recursoId,
+        mes: 5,
+        anio: 2026,
+        horasConsumidas: 30,
+      });
+      // Segundo consumo satura la linea: EnEjecucion -> Consumido (consumo_completo).
+      service.create({
+        lineaPedidoId: lineaId,
+        recursoId,
+        mes: 6,
+        anio: 2026,
+        horasConsumidas: 20,
+      });
+      const filas = db.select().from(historialPedido).all();
+      const acciones = filas.map((f) => f.accion);
+      expect(acciones).toContain('consumo_inicial');
+      expect(acciones).toContain('consumo_completo');
+    });
+
+    it('Aprobado→Consumido en un único consumo registra solo consumo_completo', () => {
+      const { lineaId, recursoId } = setupPedidoAprobado({
+        horasOfertadas: 30,
+      });
+      service.create({
+        lineaPedidoId: lineaId,
+        recursoId,
+        mes: 5,
+        anio: 2026,
+        horasConsumidas: 30,
+      });
+      const auto = db
+        .select()
+        .from(historialPedido)
+        .all()
+        .filter((f) => f.accion.startsWith('consumo'));
+      expect(auto).toHaveLength(1);
+      expect(auto[0]).toMatchObject({
+        estadoAnterior: 'Aprobado',
+        estadoNuevo: 'Consumido',
+        accion: 'consumo_completo',
+      });
+    });
+
+    it('borrar consumo que regresa el estado escribe consumo_borrado', () => {
+      const { lineaId, recursoId } = setupPedidoAprobado();
+      const usuarioId = crearUsuario();
+      const consumo = service.create({
+        lineaPedidoId: lineaId,
+        recursoId,
+        mes: 5,
+        anio: 2026,
+        horasConsumidas: 20,
+      });
+      service.delete(consumo.id, usuarioId);
+      const filas = db.select().from(historialPedido).all();
+      const ultima = filas[filas.length - 1];
+      expect(ultima.accion).toBe('consumo_borrado');
+      expect(ultima.estadoAnterior).toBe('EnEjecucion');
+      expect(ultima.estadoNuevo).toBe('Aprobado');
+      expect(ultima.usuarioId).toBe(usuarioId);
+    });
+
+    it('no escribe historial cuando el borrado no cambia de estado', () => {
+      const { lineaId, recursoId } = setupPedidoAprobado();
+      const a = service.create({
+        lineaPedidoId: lineaId,
+        recursoId,
+        mes: 5,
+        anio: 2026,
+        horasConsumidas: 10,
+      });
+      service.create({
+        lineaPedidoId: lineaId,
+        recursoId,
+        mes: 6,
+        anio: 2026,
+        horasConsumidas: 15,
+      });
+      const antes = db.select().from(historialPedido).all().length;
+      service.delete(a.id);
+      const despues = db.select().from(historialPedido).all().length;
+      expect(despues).toBe(antes);
+    });
   });
 });

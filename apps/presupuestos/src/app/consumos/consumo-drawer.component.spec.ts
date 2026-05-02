@@ -70,6 +70,7 @@ const PEDIDO_APROBADO: Pedido = {
       updatedAt: '2026-03-01',
     },
   ],
+  historial: [],
   createdAt: '2026-03-01',
   updatedAt: '2026-03-05',
 };
@@ -82,6 +83,7 @@ const PEDIDO_BORRADOR: Pedido = {
   fechaSolicitud: null,
   fechaAprobacion: null,
   lineas: [],
+  historial: [],
   createdAt: '2026-03-01',
   updatedAt: '2026-03-01',
 };
