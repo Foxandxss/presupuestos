@@ -8,6 +8,7 @@
       "@operaciones/ui/command-palette": [
         "libs/operaciones/ui/command-palette/index.ts"
       ],
+      "@operaciones/ui/dialogos": ["libs/operaciones/ui/dialogos/index.ts"],
       "@operaciones/ui/errores": ["libs/operaciones/ui/errores/index.ts"],
       "@operaciones/ui/estados-pedido": [
         "libs/operaciones/ui/estados-pedido/index.ts"

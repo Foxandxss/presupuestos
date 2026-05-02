@@ -19,11 +19,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 
 import { Rol } from '@operaciones/dominio';
+import { ModalComponent } from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -54,10 +54,10 @@ const SECCION = 'proveedores';
     CommonModule,
     ReactiveFormsModule,
     TableModule,
-    DialogModule,
     ButtonModule,
     InputTextModule,
     ConfirmDialogModule,
+    ModalComponent,
     ListPageComponent,
     ListToolbarComponent,
     EmptyStateComponent,

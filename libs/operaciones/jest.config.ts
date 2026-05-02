@@ -19,6 +19,7 @@ module.exports = {
     '^@operaciones/ui/charts$': '<rootDir>/ui/charts/index.ts',
     '^@operaciones/ui/command-palette$':
       '<rootDir>/ui/command-palette/index.ts',
+    '^@operaciones/ui/dialogos$': '<rootDir>/ui/dialogos/index.ts',
     '^@operaciones/ui/errores$': '<rootDir>/ui/errores/index.ts',
     '^@operaciones/ui/estados-pedido$':
       '<rootDir>/ui/estados-pedido/index.ts',
