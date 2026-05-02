@@ -13,7 +13,8 @@ import {
 } from '../db/schema';
 import {
   AgregadorActividad,
-  type EventoActividad,
+  type ActividadFiltros,
+  type ActividadPagina,
 } from './agregador-actividad';
 import {
   CalculadorKpisInicio,
@@ -46,7 +47,7 @@ export class InicioService {
     );
   }
 
-  actividad(limit = 10): EventoActividad[] {
+  actividad(opts: ActividadFiltros = {}): ActividadPagina {
     const pedidosFila = this.db
       .select({
         id: pedidos.id,
@@ -81,7 +82,7 @@ export class InicioService {
       .innerJoin(recursos, eq(recursos.id, consumosMensuales.recursoId))
       .all();
 
-    return AgregadorActividad.agregar(pedidosFila, consumosFila, limit);
+    return AgregadorActividad.agregar(pedidosFila, consumosFila, opts);
   }
 
   private contextoMes() {

@@ -105,21 +105,22 @@ describe('InicioService (integration)', () => {
       usuario.id,
     );
 
-    const eventos = service.actividad(20);
-    const tipos = eventos.map((e) => e.tipo);
+    const pagina = service.actividad({ limit: 20 });
+    const tipos = pagina.items.map((e) => e.tipo);
 
     expect(tipos).toContain('pedido_creado');
     expect(tipos).toContain('pedido_solicitado');
     expect(tipos).toContain('pedido_aprobado');
     expect(tipos).toContain('consumo_registrado');
+    expect(pagina.total).toBe(pagina.items.length);
 
     // ordenado por fecha desc — el primer evento es el más reciente
-    for (let i = 0; i < eventos.length - 1; i++) {
-      expect(eventos[i].fecha >= eventos[i + 1].fecha).toBe(true);
+    for (let i = 0; i < pagina.items.length - 1; i++) {
+      expect(pagina.items[i].fecha >= pagina.items[i + 1].fecha).toBe(true);
     }
   });
 
-  it('actividad respeta el limit', () => {
+  it('actividad respeta el limit y devuelve total sin paginar', () => {
     const { proveedor, proyecto, perfil } = setupBase();
     pedidosService.create({
       proyectoId: proyecto.id,
@@ -134,8 +135,46 @@ describe('InicioService (integration)', () => {
       ],
     });
 
-    expect(service.actividad(0)).toEqual([]);
-    expect(service.actividad(1)).toHaveLength(1);
+    const cero = service.actividad({ limit: 0 });
+    expect(cero.items).toEqual([]);
+    expect(cero.total).toBe(1);
+
+    const uno = service.actividad({ limit: 1 });
+    expect(uno.items).toHaveLength(1);
+    expect(uno.total).toBe(1);
+  });
+
+  it('actividad filtra por tipo y devuelve total post-filtro', () => {
+    const { proveedor, proyecto, perfil, recurso, usuario } = setupBase();
+    const pedido = pedidosService.create({
+      proyectoId: proyecto.id,
+      proveedorId: proveedor.id,
+      lineas: [
+        {
+          perfilTecnicoId: perfil.id,
+          fechaInicio: '2026-04-01',
+          fechaFin: '2026-08-31',
+          horasOfertadas: 100,
+        },
+      ],
+    });
+    pedidosService.transitar(pedido.id, 'solicitar');
+    pedidosService.transitar(pedido.id, 'aprobar');
+    consumos.create(
+      {
+        lineaPedidoId: pedido.lineas[0].id,
+        recursoId: recurso.id,
+        mes: 5,
+        anio: 2026,
+        horasConsumidas: 40,
+      },
+      usuario.id,
+    );
+
+    const pagina = service.actividad({ tipo: ['consumo_registrado'], limit: 50 });
+
+    expect(pagina.total).toBe(1);
+    expect(pagina.items.map((e) => e.tipo)).toEqual(['consumo_registrado']);
   });
 
   it('kpisAdmin con dataset vacío devuelve ceros', () => {

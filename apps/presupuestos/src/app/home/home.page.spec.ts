@@ -11,7 +11,12 @@ import { MessageService } from 'primeng/api';
 import { AuthService } from '../auth/auth.service';
 
 import { HomePage } from './home.page';
-import type { ActividadEvento, KpisAdmin, KpisConsultor } from './inicio.types';
+import type {
+  ActividadEvento,
+  ActividadPagina,
+  KpisAdmin,
+  KpisConsultor,
+} from './inicio.types';
 
 const KPIS_ADMIN: KpisAdmin = {
   pendientesAprobacion: 3,
@@ -28,7 +33,7 @@ const KPIS_CONSULTOR: KpisConsultor = {
   misHorasConsumidasMes: 32,
 };
 
-const ACTIVIDAD: ActividadEvento[] = [
+const ACTIVIDAD_ITEMS: ActividadEvento[] = [
   {
     tipo: 'pedido_aprobado',
     fecha: '2026-04-30T12:00:00Z',
@@ -42,6 +47,13 @@ const ACTIVIDAD: ActividadEvento[] = [
     recurso: { tipo: 'consumo', id: 100 },
   },
 ];
+
+const ACTIVIDAD: ActividadPagina = {
+  total: ACTIVIDAD_ITEMS.length,
+  items: ACTIVIDAD_ITEMS,
+};
+
+const ACTIVIDAD_VACIA: ActividadPagina = { total: 0, items: [] };
 
 class AuthServiceStubAdmin {
   rol = () => 'admin' as const;
@@ -174,7 +186,7 @@ describe('HomePage', () => {
   it('actividad vacía muestra el mensaje "Sin actividad reciente"', () => {
     configurar(new AuthServiceStubAdmin());
     httpMock.expectOne('/api/inicio/kpis?rol=admin').flush(KPIS_ADMIN);
-    httpMock.expectOne('/api/actividad?limit=10').flush([]);
+    httpMock.expectOne('/api/actividad?limit=10').flush(ACTIVIDAD_VACIA);
     fixture.detectChanges();
 
     const root = fixture.nativeElement as HTMLElement;
@@ -191,7 +203,7 @@ describe('HomePage', () => {
     httpMock
       .match('/api/actividad?limit=10')
       .forEach((req) => {
-        if (!req.cancelled) req.flush([]);
+        if (!req.cancelled) req.flush(ACTIVIDAD_VACIA);
       });
     fixture.detectChanges();
 

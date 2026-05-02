@@ -34,6 +34,7 @@ import type { Pedido } from '../pedidos/pedidos.types';
 import { InicioApi } from './inicio.api';
 import type {
   ActividadEvento,
+  ActividadPagina,
   KpisAdmin,
   KpisConsultor,
   TipoActividad,
@@ -317,8 +318,10 @@ export class HomePage {
 
     const kpis$ =
       r === 'admin' ? this.api.kpisAdmin() : this.api.kpisConsultor();
-    const actividad$ = this.api.actividad(10).pipe(
-      catchError(() => of([] as ActividadEvento[])),
+    const actividad$ = this.api.actividad({ limit: 10 }).pipe(
+      catchError(() =>
+        of({ total: 0, items: [] as ActividadEvento[] } satisfies ActividadPagina),
+      ),
     );
 
     forkJoin({ kpis: kpis$, actividad: actividad$ }).subscribe({
@@ -330,7 +333,7 @@ export class HomePage {
           this.kpisConsultor.set(kpis as KpisConsultor);
           this.kpisAdmin.set(null);
         }
-        this.actividad.set(actividad);
+        this.actividad.set(actividad.items);
         this.cargando.set(false);
       },
       error: (err: HttpErrorResponse) => {

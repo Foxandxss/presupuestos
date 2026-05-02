@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { ActividadPage } from './actividad/actividad.page';
 import { authGuard, guestGuard, roleGuard } from './auth/auth.guard';
 import { LoginPage } from './auth/login.page';
 import { PerfilesTecnicosPage } from './catalogo/perfiles-tecnicos.page';
@@ -97,6 +98,12 @@ export const appRoutes: Routes = [
     component: ConsumosPage,
     canActivate: [authGuard],
     title: 'Consumos · Presupuestos',
+  },
+  {
+    path: 'actividad',
+    component: ActividadPage,
+    canActivate: [authGuard, roleGuard('admin')],
+    title: 'Actividad · Presupuestos',
   },
   {
     path: 'reportes',

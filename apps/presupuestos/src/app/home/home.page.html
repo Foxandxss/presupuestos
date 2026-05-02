@@ -116,8 +116,12 @@
             }
           </ul>
         }
-        <a class="pre-actividad__ver-mas" routerLink="/pedidos">
-          Ver todos los pedidos →
+        <a
+          *preIfRol="Rol.Admin"
+          class="pre-actividad__ver-mas"
+          routerLink="/actividad"
+        >
+          Ver toda la actividad →
         </a>
       </section>
     </div>

@@ -17,7 +17,7 @@ import type { JwtPayload } from '../auth/jwt-payload';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import {
-  ActividadEventoDto,
+  ActividadPaginaDto,
   ActividadQuery,
   InicioKpisQuery,
   KpisAdminDto,
@@ -60,8 +60,18 @@ export class ActividadController {
   constructor(private readonly service: InicioService) {}
 
   @Get()
-  @ApiOkResponse({ type: [ActividadEventoDto] })
-  list(@Query() query: ActividadQuery): ActividadEventoDto[] {
-    return this.service.actividad(query.limit ?? 10);
+  @ApiOkResponse({ type: ActividadPaginaDto })
+  @ApiOperation({
+    summary:
+      'Feed paginado de actividad. Filtros opcionales acumulables (tipo, desde, hasta).',
+  })
+  list(@Query() query: ActividadQuery): ActividadPaginaDto {
+    return this.service.actividad({
+      limit: query.limit ?? 10,
+      offset: query.offset ?? 0,
+      tipo: query.tipo,
+      desde: query.desde,
+      hasta: query.hasta,
+    });
   }
 }

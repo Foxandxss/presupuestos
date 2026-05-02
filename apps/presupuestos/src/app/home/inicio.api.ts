@@ -5,7 +5,8 @@ import { Observable } from 'rxjs';
 import type { Rol } from '@operaciones/dominio';
 
 import type {
-  ActividadEvento,
+  ActividadFiltros,
+  ActividadPagina,
   KpisAdmin,
   KpisConsultor,
 } from './inicio.types';
@@ -26,9 +27,17 @@ export class InicioApi {
     });
   }
 
-  actividad(limit = 10): Observable<ActividadEvento[]> {
-    return this.http.get<ActividadEvento[]>('/api/actividad', {
-      params: new HttpParams().set('limit', String(limit)),
-    });
+  actividad(filtros: ActividadFiltros = {}): Observable<ActividadPagina> {
+    let params = new HttpParams();
+    if (filtros.limit !== undefined)
+      params = params.set('limit', String(filtros.limit));
+    if (filtros.offset !== undefined)
+      params = params.set('offset', String(filtros.offset));
+    if (filtros.tipo && filtros.tipo.length > 0) {
+      params = params.set('tipo', filtros.tipo.join(','));
+    }
+    if (filtros.desde) params = params.set('desde', filtros.desde);
+    if (filtros.hasta) params = params.set('hasta', filtros.hasta);
+    return this.http.get<ActividadPagina>('/api/actividad', { params });
   }
 }
