@@ -29,7 +29,11 @@ import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
-import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
+import {
+  ModalComponent,
+  PreConfirm,
+  PreFieldComponent,
+} from '@operaciones/ui/dialogos';
 import {
   etiquetaEstadoPedido,
   StatusBadgeComponent,
@@ -166,6 +170,7 @@ function leerFilasInicial(): number {
     MultiSelectModule,
     ToastModule,
     ModalComponent,
+    PreFieldComponent,
     StatusBadgeComponent,
     StatusTimelineComponent,
     ListPageComponent,

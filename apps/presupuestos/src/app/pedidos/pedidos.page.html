@@ -204,9 +204,17 @@
       </div>
     }
     <div class="grid grid-cols-2 gap-4">
-
-      <div class="flex flex-col gap-1">
-        <label for="pedido-proyecto" class="text-sm text-slate-700">Proyecto</label>
+      <pre-field
+        label="Proyecto"
+        controlId="pedido-proyecto"
+        [requerido]="true"
+        [error]="
+          form.controls['proyectoId'].invalid &&
+          form.controls['proyectoId'].touched
+            ? 'Proyecto obligatorio.'
+            : null
+        "
+      >
         <p-select
           inputId="pedido-proyecto"
           formControlName="proyectoId"
@@ -216,12 +224,18 @@
           placeholder="Selecciona proyecto"
           appendTo="body"
         ></p-select>
-        @if (form.controls['proyectoId'].invalid && form.controls['proyectoId'].touched) {
-          <small class="text-red-600">Proyecto obligatorio.</small>
-        }
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="pedido-proveedor" class="text-sm text-slate-700">Proveedor</label>
+      </pre-field>
+      <pre-field
+        label="Proveedor"
+        controlId="pedido-proveedor"
+        [requerido]="true"
+        [error]="
+          form.controls['proveedorId'].invalid &&
+          form.controls['proveedorId'].touched
+            ? 'Proveedor obligatorio.'
+            : null
+        "
+      >
         <p-select
           inputId="pedido-proveedor"
           formControlName="proveedorId"
@@ -231,10 +245,7 @@
           placeholder="Selecciona proveedor"
           appendTo="body"
         ></p-select>
-        @if (form.controls['proveedorId'].invalid && form.controls['proveedorId'].touched) {
-          <small class="text-red-600">Proveedor obligatorio.</small>
-        }
-      </div>
+      </pre-field>
     </div>
 
     <div class="flex flex-col gap-2">
@@ -263,7 +274,16 @@
             [formGroupName]="i"
             class="grid grid-cols-[1fr_8rem_8rem_6rem_7rem_3rem] gap-2 items-start border border-slate-200 rounded p-2"
           >
-            <div class="flex flex-col gap-1">
+            <pre-field
+              [controlId]="'linea-perfil-' + i"
+              ariaLabel="Perfil técnico"
+              [error]="
+                fila.get('perfilTecnicoId')?.invalid &&
+                fila.get('perfilTecnicoId')?.touched
+                  ? 'Perfil obligatorio.'
+                  : null
+              "
+            >
               <p-select
                 [inputId]="'linea-perfil-' + i"
                 formControlName="perfilTecnicoId"
@@ -272,43 +292,65 @@
                 optionValue="id"
                 placeholder="Perfil"
                 appendTo="body"
+                ariaLabel="Perfil técnico"
                 (onChange)="onPerfilChange(i)"
               ></p-select>
-              @if (fila.get('perfilTecnicoId')?.invalid && fila.get('perfilTecnicoId')?.touched) {
-                <small class="text-red-600">Perfil obligatorio.</small>
-              }
-            </div>
-            <p-datePicker
-              [inputId]="'linea-inicio-' + i"
-              formControlName="fechaInicio"
-              dateFormat="yy-mm-dd"
-              appendTo="body"
-              placeholder="Inicio"
-            ></p-datePicker>
-            <p-datePicker
-              [inputId]="'linea-fin-' + i"
-              formControlName="fechaFin"
-              dateFormat="yy-mm-dd"
-              appendTo="body"
-              placeholder="Fin"
-            ></p-datePicker>
-            <p-inputNumber
-              [inputId]="'linea-horas-' + i"
-              formControlName="horasOfertadas"
-              mode="decimal"
-              [minFractionDigits]="0"
-              [maxFractionDigits]="2"
-              [min]="0"
-              placeholder="Horas"
-            ></p-inputNumber>
-            <p-inputNumber
-              [inputId]="'linea-precio-' + i"
-              formControlName="precioHora"
-              mode="currency"
-              currency="EUR"
-              [min]="0"
-              placeholder="€/h"
-            ></p-inputNumber>
+            </pre-field>
+            <pre-field
+              [controlId]="'linea-inicio-' + i"
+              ariaLabel="Fecha de inicio"
+            >
+              <p-datePicker
+                [inputId]="'linea-inicio-' + i"
+                formControlName="fechaInicio"
+                dateFormat="yy-mm-dd"
+                appendTo="body"
+                placeholder="Inicio"
+                ariaLabel="Fecha de inicio"
+              ></p-datePicker>
+            </pre-field>
+            <pre-field
+              [controlId]="'linea-fin-' + i"
+              ariaLabel="Fecha de fin"
+            >
+              <p-datePicker
+                [inputId]="'linea-fin-' + i"
+                formControlName="fechaFin"
+                dateFormat="yy-mm-dd"
+                appendTo="body"
+                placeholder="Fin"
+                ariaLabel="Fecha de fin"
+              ></p-datePicker>
+            </pre-field>
+            <pre-field
+              [controlId]="'linea-horas-' + i"
+              ariaLabel="Horas ofertadas"
+            >
+              <p-inputNumber
+                [inputId]="'linea-horas-' + i"
+                formControlName="horasOfertadas"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                [min]="0"
+                placeholder="Horas"
+                ariaLabel="Horas ofertadas"
+              ></p-inputNumber>
+            </pre-field>
+            <pre-field
+              [controlId]="'linea-precio-' + i"
+              ariaLabel="Precio por hora"
+            >
+              <p-inputNumber
+                [inputId]="'linea-precio-' + i"
+                formControlName="precioHora"
+                mode="currency"
+                currency="EUR"
+                [min]="0"
+                placeholder="€/h"
+                ariaLabel="Precio por hora"
+              ></p-inputNumber>
+            </pre-field>
             @if (esEditable(estadoActual())) {
               <p-button
                 type="button"
