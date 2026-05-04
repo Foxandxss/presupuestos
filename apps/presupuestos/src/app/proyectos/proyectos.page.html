@@ -161,8 +161,16 @@
   (visibleChange)="dialogVisible.set($event)"
 >
   <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-4">
-    <div class="flex flex-col gap-1">
-      <label for="proyecto-nombre" class="text-sm text-slate-700">Nombre</label>
+    <pre-field
+      label="Nombre"
+      controlId="proyecto-nombre"
+      [requerido]="true"
+      [error]="
+        form.controls['nombre'].invalid && form.controls['nombre'].touched
+          ? 'Nombre obligatorio (mínimo 2 caracteres).'
+          : null
+      "
+    >
       <input
         pInputText
         id="proyecto-nombre"
@@ -170,34 +178,38 @@
         formControlName="nombre"
         autocomplete="off"
       />
-      @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
-        <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
-      }
-    </div>
-    <div class="flex flex-col gap-1">
-      <label for="proyecto-descripcion" class="text-sm text-slate-700">Descripción</label>
+    </pre-field>
+    <pre-field label="Descripción" controlId="proyecto-descripcion">
       <textarea
         pTextarea
         id="proyecto-descripcion"
         formControlName="descripcion"
         rows="2"
       ></textarea>
-    </div>
+    </pre-field>
     <div class="grid grid-cols-2 gap-4">
-      <div class="flex flex-col gap-1">
-        <label for="proyecto-fecha-inicio" class="text-sm text-slate-700">Fecha de inicio</label>
+      <pre-field
+        label="Fecha de inicio"
+        controlId="proyecto-fecha-inicio"
+        [requerido]="true"
+        [error]="
+          form.controls['fechaInicio'].invalid &&
+          form.controls['fechaInicio'].touched
+            ? 'Fecha de inicio obligatoria.'
+            : null
+        "
+      >
         <p-datePicker
           inputId="proyecto-fecha-inicio"
           formControlName="fechaInicio"
           dateFormat="yy-mm-dd"
           appendTo="body"
         ></p-datePicker>
-        @if (form.controls['fechaInicio'].invalid && form.controls['fechaInicio'].touched) {
-          <small class="text-red-600">Fecha de inicio obligatoria.</small>
-        }
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="proyecto-fecha-fin" class="text-sm text-slate-700">Fecha de fin (opcional)</label>
+      </pre-field>
+      <pre-field
+        label="Fecha de fin (opcional)"
+        controlId="proyecto-fecha-fin"
+      >
         <p-datePicker
           inputId="proyecto-fecha-fin"
           formControlName="fechaFin"
@@ -205,7 +217,7 @@
           [showButtonBar]="true"
           appendTo="body"
         ></p-datePicker>
-      </div>
+      </pre-field>
     </div>
 
     <div class="flex flex-col gap-2">
@@ -229,7 +241,16 @@
         }
         @for (fila of estimacionesArray.controls; track fila; let i = $index) {
           <div [formGroupName]="i" class="grid grid-cols-[1fr_10rem_3rem] gap-2 items-start">
-            <div class="flex flex-col gap-1">
+            <pre-field
+              [controlId]="'estim-perfil-' + i"
+              ariaLabel="Perfil técnico"
+              [error]="
+                fila.get('perfilTecnicoId')?.invalid &&
+                fila.get('perfilTecnicoId')?.touched
+                  ? 'Selecciona un perfil.'
+                  : null
+              "
+            >
               <p-select
                 [inputId]="'estim-perfil-' + i"
                 formControlName="perfilTecnicoId"
@@ -238,12 +259,19 @@
                 optionValue="id"
                 placeholder="Perfil técnico"
                 appendTo="body"
+                ariaLabel="Perfil técnico"
               ></p-select>
-              @if (fila.get('perfilTecnicoId')?.invalid && fila.get('perfilTecnicoId')?.touched) {
-                <small class="text-red-600">Selecciona un perfil.</small>
-              }
-            </div>
-            <div class="flex flex-col gap-1">
+            </pre-field>
+            <pre-field
+              [controlId]="'estim-horas-' + i"
+              ariaLabel="Horas estimadas"
+              [error]="
+                fila.get('horasEstimadas')?.invalid &&
+                fila.get('horasEstimadas')?.touched
+                  ? 'Horas no negativas.'
+                  : null
+              "
+            >
               <p-inputNumber
                 [inputId]="'estim-horas-' + i"
                 formControlName="horasEstimadas"
@@ -252,11 +280,9 @@
                 [maxFractionDigits]="2"
                 [min]="0"
                 placeholder="Horas"
+                ariaLabel="Horas estimadas"
               ></p-inputNumber>
-              @if (fila.get('horasEstimadas')?.invalid && fila.get('horasEstimadas')?.touched) {
-                <small class="text-red-600">Horas no negativas.</small>
-              }
-            </div>
+            </pre-field>
             <p-button
               type="button"
               icon="pi pi-trash"

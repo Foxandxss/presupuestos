@@ -28,7 +28,11 @@ import { ToastModule } from 'primeng/toast';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
-import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
+import {
+  ModalComponent,
+  PreConfirm,
+  PreFieldComponent,
+} from '@operaciones/ui/dialogos';
 import { mapearErrorACopy } from '@operaciones/ui/errores';
 import {
   etiquetaEstadoPedido,
@@ -75,6 +79,7 @@ interface FilaEditableEstimacion {
     SelectModule,
     ToastModule,
     ModalComponent,
+    PreFieldComponent,
     StatusBadgeComponent,
     ErrorStateComponent,
     LoadingStateComponent,

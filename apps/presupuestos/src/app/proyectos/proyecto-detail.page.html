@@ -314,10 +314,16 @@
       (ngSubmit)="guardarCabecera()"
       class="flex flex-col gap-4"
     >
-      <div class="flex flex-col gap-1">
-        <label for="proyecto-detail-nombre" class="text-sm text-slate-700"
-          >Nombre</label
-        >
+      <pre-field
+        label="Nombre"
+        controlId="proyecto-detail-nombre"
+        [requerido]="true"
+        [error]="
+          form.controls['nombre'].invalid && form.controls['nombre'].touched
+            ? 'Nombre obligatorio (mínimo 2 caracteres).'
+            : null
+        "
+      >
         <input
           pInputText
           id="proyecto-detail-nombre"
@@ -325,39 +331,28 @@
           formControlName="nombre"
           autocomplete="off"
         />
-        @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
-          <small class="text-red-600"
-            >Nombre obligatorio (mínimo 2 caracteres).</small
-          >
-        }
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="proyecto-detail-descripcion" class="text-sm text-slate-700"
-          >Descripción</label
-        >
+      </pre-field>
+      <pre-field label="Descripción" controlId="proyecto-detail-descripcion">
         <textarea
           pTextarea
           id="proyecto-detail-descripcion"
           formControlName="descripcion"
           rows="2"
         ></textarea>
-      </div>
+      </pre-field>
       <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1">
-          <label for="proyecto-detail-inicio" class="text-sm text-slate-700"
-            >Fecha de inicio</label
-          >
+        <pre-field label="Fecha de inicio" controlId="proyecto-detail-inicio">
           <p-datePicker
             inputId="proyecto-detail-inicio"
             formControlName="fechaInicio"
             dateFormat="yy-mm-dd"
             appendTo="body"
           ></p-datePicker>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label for="proyecto-detail-fin" class="text-sm text-slate-700"
-            >Fecha de fin (opcional)</label
-          >
+        </pre-field>
+        <pre-field
+          label="Fecha de fin (opcional)"
+          controlId="proyecto-detail-fin"
+        >
           <p-datePicker
             inputId="proyecto-detail-fin"
             formControlName="fechaFin"
@@ -365,7 +360,7 @@
             [showButtonBar]="true"
             appendTo="body"
           ></p-datePicker>
-        </div>
+        </pre-field>
       </div>
     </form>
     <div preModalFooter>

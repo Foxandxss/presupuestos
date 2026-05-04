@@ -29,7 +29,11 @@ import { TextareaModule } from 'primeng/textarea';
 import { forkJoin } from 'rxjs';
 
 import { Rol } from '@operaciones/dominio';
-import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
+import {
+  ModalComponent,
+  PreConfirm,
+  PreFieldComponent,
+} from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -80,6 +84,7 @@ const ESTADO_OPCIONES: { label: string; value: EstadoProyecto }[] = [
     DatePickerModule,
     SelectModule,
     ModalComponent,
+    PreFieldComponent,
     ListPageComponent,
     ListToolbarComponent,
     EmptyStateComponent,
