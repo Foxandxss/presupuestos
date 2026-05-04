@@ -146,8 +146,16 @@
   (visibleChange)="dialogVisible.set($event)"
 >
   <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-3">
-    <div class="flex flex-col gap-1">
-      <label for="recurso-nombre" class="text-sm text-slate-700">Nombre</label>
+    <pre-field
+      label="Nombre"
+      controlId="recurso-nombre"
+      [requerido]="true"
+      [error]="
+        form.controls['nombre'].invalid && form.controls['nombre'].touched
+          ? 'Nombre obligatorio (mínimo 2 caracteres).'
+          : null
+      "
+    >
       <input
         pInputText
         id="recurso-nombre"
@@ -155,12 +163,18 @@
         formControlName="nombre"
         autocomplete="off"
       />
-      @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
-        <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
-      }
-    </div>
-    <div class="flex flex-col gap-1">
-      <label for="recurso-proveedor" class="text-sm text-slate-700">Proveedor</label>
+    </pre-field>
+    <pre-field
+      label="Proveedor"
+      controlId="recurso-proveedor"
+      [requerido]="true"
+      [error]="
+        form.controls['proveedorId'].invalid &&
+        form.controls['proveedorId'].touched
+          ? 'Selecciona un proveedor.'
+          : null
+      "
+    >
       <p-select
         inputId="recurso-proveedor"
         formControlName="proveedorId"
@@ -170,10 +184,7 @@
         placeholder="Selecciona un proveedor"
         appendTo="body"
       ></p-select>
-      @if (form.controls['proveedorId'].invalid && form.controls['proveedorId'].touched) {
-        <small class="text-red-600">Selecciona un proveedor.</small>
-      }
-    </div>
+    </pre-field>
   </form>
   <div preModalFooter>
     <p-button

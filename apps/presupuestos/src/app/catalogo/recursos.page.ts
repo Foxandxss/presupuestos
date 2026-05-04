@@ -25,7 +25,11 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 
 import { Rol } from '@operaciones/dominio';
-import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
+import {
+  ModalComponent,
+  PreConfirm,
+  PreFieldComponent,
+} from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -61,6 +65,7 @@ const SECCION = 'recursos';
     InputTextModule,
     SelectModule,
     ModalComponent,
+    PreFieldComponent,
     ListPageComponent,
     ListToolbarComponent,
     EmptyStateComponent,

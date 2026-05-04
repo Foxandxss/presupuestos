@@ -127,8 +127,16 @@
   (visibleChange)="dialogVisible.set($event)"
 >
   <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-3">
-    <div class="flex flex-col gap-1">
-      <label for="perfil-nombre" class="text-sm text-slate-700">Nombre</label>
+    <pre-field
+      label="Nombre"
+      controlId="perfil-nombre"
+      [requerido]="true"
+      [error]="
+        form.controls['nombre'].invalid && form.controls['nombre'].touched
+          ? 'Nombre obligatorio (mínimo 2 caracteres).'
+          : null
+      "
+    >
       <input
         pInputText
         id="perfil-nombre"
@@ -136,10 +144,7 @@
         formControlName="nombre"
         autocomplete="off"
       />
-      @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
-        <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
-      }
-    </div>
+    </pre-field>
   </form>
   <div preModalFooter>
     <p-button
