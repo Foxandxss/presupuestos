@@ -171,8 +171,16 @@
 >
   @if (editandoId() === null) {
     <form [formGroup]="form" (ngSubmit)="guardar()" class="flex flex-col gap-3">
-      <div class="flex flex-col gap-1">
-        <label for="usuario-email" class="text-sm text-slate-700">Email</label>
+      <pre-field
+        label="Email"
+        controlId="usuario-email"
+        [requerido]="true"
+        [error]="
+          form.controls['email'].invalid && form.controls['email'].touched
+            ? 'Email obligatorio y con formato válido.'
+            : null
+        "
+      >
         <input
           pInputText
           id="usuario-email"
@@ -180,12 +188,17 @@
           formControlName="email"
           autocomplete="off"
         />
-        @if (form.controls['email'].invalid && form.controls['email'].touched) {
-          <small class="text-red-600">Email obligatorio y con formato válido.</small>
-        }
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="usuario-nombre" class="text-sm text-slate-700">Nombre</label>
+      </pre-field>
+      <pre-field
+        label="Nombre"
+        controlId="usuario-nombre"
+        [requerido]="true"
+        [error]="
+          form.controls['nombre'].invalid && form.controls['nombre'].touched
+            ? 'Nombre obligatorio (mínimo 2 caracteres).'
+            : null
+        "
+      >
         <input
           pInputText
           id="usuario-nombre"
@@ -193,12 +206,8 @@
           formControlName="nombre"
           autocomplete="off"
         />
-        @if (form.controls['nombre'].invalid && form.controls['nombre'].touched) {
-          <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
-        }
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="usuario-rol" class="text-sm text-slate-700">Rol</label>
+      </pre-field>
+      <pre-field label="Rol" controlId="usuario-rol" [requerido]="true">
         <p-select
           inputId="usuario-rol"
           [options]="opcionesRol"
@@ -207,11 +216,19 @@
           formControlName="rol"
           appendTo="body"
         ></p-select>
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="usuario-password" class="text-sm text-slate-700">
-          Contraseña inicial
-        </label>
+      </pre-field>
+      <pre-field
+        label="Contraseña inicial"
+        controlId="usuario-password"
+        [requerido]="true"
+        hint="Entrega la contraseña al usuario por canal externo. Mínimo 8 caracteres."
+        [error]="
+          form.controls['passwordInicial'].invalid &&
+          form.controls['passwordInicial'].touched
+            ? 'La contraseña inicial debe tener al menos 8 caracteres.'
+            : null
+        "
+      >
         <input
           pInputText
           id="usuario-password"
@@ -219,23 +236,21 @@
           formControlName="passwordInicial"
           autocomplete="new-password"
         />
-        <small class="text-slate-500">
-          Entrega la contraseña al usuario por canal externo. Mínimo 8 caracteres.
-        </small>
-        @if (
-          form.controls['passwordInicial'].invalid &&
-          form.controls['passwordInicial'].touched
-        ) {
-          <small class="text-red-600">
-            La contraseña inicial debe tener al menos 8 caracteres.
-          </small>
-        }
-      </div>
+      </pre-field>
     </form>
   } @else {
     <form [formGroup]="editForm" (ngSubmit)="guardar()" class="flex flex-col gap-3">
-      <div class="flex flex-col gap-1">
-        <label for="usuario-edit-nombre" class="text-sm text-slate-700">Nombre</label>
+      <pre-field
+        label="Nombre"
+        controlId="usuario-edit-nombre"
+        [requerido]="true"
+        [error]="
+          editForm.controls['nombre'].invalid &&
+          editForm.controls['nombre'].touched
+            ? 'Nombre obligatorio (mínimo 2 caracteres).'
+            : null
+        "
+      >
         <input
           pInputText
           id="usuario-edit-nombre"
@@ -243,15 +258,13 @@
           formControlName="nombre"
           autocomplete="off"
         />
-        @if (
-          editForm.controls['nombre'].invalid &&
-          editForm.controls['nombre'].touched
-        ) {
-          <small class="text-red-600">Nombre obligatorio (mínimo 2 caracteres).</small>
-        }
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="usuario-edit-rol" class="text-sm text-slate-700">Rol</label>
+      </pre-field>
+      <pre-field
+        label="Rol"
+        controlId="usuario-edit-rol"
+        [requerido]="true"
+        hint="El email no se puede cambiar. Para resetear la contraseña usa el botón dedicado en la fila."
+      >
         <p-select
           inputId="usuario-edit-rol"
           [options]="opcionesRol"
@@ -260,11 +273,7 @@
           formControlName="rol"
           appendTo="body"
         ></p-select>
-        <small class="text-slate-500">
-          El email no se puede cambiar. Para resetear la contraseña usa el botón
-          dedicado en la fila.
-        </small>
-      </div>
+      </pre-field>
     </form>
   }
   <div preModalFooter>
@@ -325,10 +334,17 @@
           <strong>{{ target.email }}</strong>. Tras guardar la podrás copiar
           para entregársela por canal externo.
         </p>
-        <div class="flex flex-col gap-1">
-          <label for="usuario-reset-password" class="text-sm text-slate-700">
-            Nueva contraseña
-          </label>
+        <pre-field
+          label="Nueva contraseña"
+          controlId="usuario-reset-password"
+          [requerido]="true"
+          [error]="
+            resetForm.controls['nuevaPassword'].invalid &&
+            resetForm.controls['nuevaPassword'].touched
+              ? 'La contraseña debe tener al menos 8 caracteres.'
+              : null
+          "
+        >
           <input
             pInputText
             id="usuario-reset-password"
@@ -336,15 +352,7 @@
             formControlName="nuevaPassword"
             autocomplete="new-password"
           />
-          @if (
-            resetForm.controls['nuevaPassword'].invalid &&
-            resetForm.controls['nuevaPassword'].touched
-          ) {
-            <small class="text-red-600">
-              La contraseña debe tener al menos 8 caracteres.
-            </small>
-          }
-        </div>
+        </pre-field>
       </form>
     }
   }

@@ -25,7 +25,11 @@ import { SelectModule } from 'primeng/select';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 
 import { Rol as RolEnum } from '@operaciones/dominio';
-import { ModalComponent, PreConfirm } from '@operaciones/ui/dialogos';
+import {
+  ModalComponent,
+  PreConfirm,
+  PreFieldComponent,
+} from '@operaciones/ui/dialogos';
 import {
   type DensidadLista,
   EmptyStateComponent,
@@ -73,6 +77,7 @@ const ROLES_VALIDOS = new Set<Rol>(['admin', 'consultor']);
     InputTextModule,
     SelectModule,
     ModalComponent,
+    PreFieldComponent,
     ListPageComponent,
     ListToolbarComponent,
     EmptyStateComponent,
